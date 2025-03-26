@@ -532,7 +532,7 @@ class IOChannelCalculator:
                                         "序号": index_counter,
                                         "模块名称": equipment_name,
                                         "模块类型": io_type,
-                                        "供电类型（有源/无源）": "",
+                                        "供电类型（有源/无源）": "/" if io_type == "AO" else "",
                                         "线制": "",
                                         "通道位号": channel_code,
                                         "位号": "",
@@ -692,11 +692,6 @@ class IOChannelCalculator:
                     for col in range(1, max_col + 1):
                         cell = worksheet.cell(row=row, column=col)
                         cell.border = thin_border
-                    
-                    # 为需要高亮的列添加黄色背景
-                    for col in highlight_cols:
-                        cell = worksheet.cell(row=row, column=col)
-                        cell.fill = yellow_fill
                     
                     # 针对不同类型字段添加额外地址列
                     if data_type_cell == "REAL":
@@ -946,6 +941,14 @@ class IOChannelCalculator:
                         
                         worksheet.cell(row=row, column=low_range_col_idx).value = "/"
                         worksheet.cell(row=row, column=high_range_col_idx).value = "/"
+                    
+                    # 在所有值设置完成后，再进行高亮标记
+                    # 为需要高亮的列添加黄色背景
+                    for col in highlight_cols:
+                        cell = worksheet.cell(row=row, column=col)
+                        # 判断单元格是否应该高亮：只要值为"/"就不标黄，无需区分模块类型
+                        if cell.value != "/":  # 只有当值不是"/"时才标黄
+                            cell.fill = yellow_fill
             
             # 保存成功后，移动临时文件到目标位置
             try:

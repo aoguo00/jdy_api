@@ -188,10 +188,13 @@ class ExcelDataService:
             
             # 2. 验证供电类型
             power_type = row.get("供电类型（有源/无源）")
-            if pd.isna(power_type) or str(power_type).strip() == "":
-                invalid_power_type.append(f"第{row_num}行: 供电类型为空")
-            elif str(power_type) not in ["有源", "无源"]:
-                invalid_power_type.append(f"第{row_num}行: 供电类型必须是'有源'或'无源'，当前值: {power_type}")
+            module_type = row.get("模块类型", "")
+            # 对于AO类型模块，不进行供电类型验证
+            if module_type != "AO":
+                if pd.isna(power_type) or str(power_type).strip() == "":
+                    invalid_power_type.append(f"第{row_num}行: 供电类型为空")
+                elif str(power_type) not in ["有源", "无源"]:
+                    invalid_power_type.append(f"第{row_num}行: 供电类型必须是'有源'或'无源'，当前值: {power_type}")
             
             # 3. 验证线制
             wire_type = row.get("线制")
