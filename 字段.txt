@@ -1,0 +1,389 @@
+app_id": "67d13e0bb840cdf11eccad1e
+
+
+用户表单
+{
+      "name": "深化设计（B1）",
+      "app_id": "67d13e0bb840cdf11eccad1e",
+      "entry_id": "67d7f0ed97abe5bfc70d8aed"
+    }
+
+表单字段
+
+
+
+{
+  "widgets": [
+    {
+      "name": "_widget_1636383491674",
+      "widgetName": "_widget_1636383491674",
+      "label": "请从【立项申请】中选择项目",
+      "type": "linkdata"
+    },
+    {
+      "name": "_widget_1635777114903",
+      "widgetName": "_widget_1635777114903",
+      "label": "项目名称",
+      "type": "text"
+    },
+    {
+      "name": "_widget_1635777114935",
+      "widgetName": "_widget_1635777114935",
+      "label": "项目编号",
+      "type": "text"
+    },
+    {
+      "name": "_widget_1636359817201",
+      "widgetName": "_widget_1636359817201",
+      "label": "深化设计编号",
+      "type": "text"
+    },
+    {
+      "name": "_widget_1635777114972",
+      "widgetName": "_widget_1635777114972",
+      "label": "客户名称",
+      "type": "text"
+    },
+    {
+      "name": "_widget_1635777114991",
+      "widgetName": "_widget_1635777114991",
+      "label": "场站",
+      "type": "text"
+    },
+    {
+      "name": "_widget_1666709486695",
+      "widgetName": "_widget_1666709486695",
+      "label": "备注说明",
+      "type": "textarea"
+    },
+    {
+      "name": "_widget_1666422387313",
+      "widgetName": "_widget_1666422387313",
+      "label": "从【合同清单(A2)】添加所有合同内设备",
+      "type": "linkdata"
+    },
+    {
+      "name": "_widget_1689840614208",
+      "widgetName": "_widget_1689840614208",
+      "label": "合同外设备行数",
+      "type": "number"
+    },
+    {
+      "name": "_widget_1649374132730",
+      "widgetName": "_widget_1649374132730",
+      "label": "行数",
+      "type": "number"
+    },
+    {
+      "name": "_widget_1736467256859",
+      "widgetName": "_widget_1736467256859",
+      "label": "设备清单附件数量",
+      "type": "number"
+    },
+    {
+      "name": "_widget_1635777115095",
+      "widgetName": "_widget_1635777115095",
+      "label": "深化清单",
+      "type": "subform",
+      "items": [
+        {
+          "name": "_widget_1741833383437",
+          "widgetName": "_widget_1741833383437",
+          "label": "测试关联可以删除",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1741957146289",
+          "widgetName": "_widget_1741957146289",
+          "label": "通道总数",
+          "type": "number"
+        },
+        {
+          "name": "_widget_1741770348145",
+          "widgetName": "_widget_1741770348145",
+          "label": "通道数（测试）",
+          "type": "number"
+        },
+        {
+          "name": "_widget_1635777115211",
+          "widgetName": "_widget_1635777115211",
+          "label": "设备名称",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1635777115248",
+          "widgetName": "_widget_1635777115248",
+          "label": "品牌",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1635777115287",
+          "widgetName": "_widget_1635777115287",
+          "label": "规格型号",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1635777485787",
+          "widgetName": "_widget_1635777485787",
+          "label": "从【库】添加合同外设备",
+          "type": "linkdata"
+        },
+        {
+          "name": "_widget_1690387633421",
+          "widgetName": "_widget_1690387633421",
+          "label": "请从【A2】添加指定合同内设备",
+          "type": "linkdata"
+        },
+        {
+          "name": "_widget_1641439264111",
+          "widgetName": "_widget_1641439264111",
+          "label": "技术参数",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1635777485580",
+          "widgetName": "_widget_1635777485580",
+          "label": "数量",
+          "type": "number"
+        },
+        {
+          "name": "_widget_1654703913698",
+          "widgetName": "_widget_1654703913698",
+          "label": "单位",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1636353456514",
+          "widgetName": "_widget_1636353456514",
+          "label": "子系统",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1635778854826",
+          "widgetName": "_widget_1635778854826",
+          "label": "备注",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1666709244379",
+          "widgetName": "_widget_1666709244379",
+          "label": "技术备注",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1641439463480",
+          "widgetName": "_widget_1641439463480",
+          "label": "技术参数(外部)",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1684760244471",
+          "widgetName": "_widget_1684760244471",
+          "label": "合同内外",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1684760535365",
+          "widgetName": "_widget_1684760535365",
+          "label": "合同内外辅助",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1645710714458",
+          "widgetName": "_widget_1645710714458",
+          "label": "增加原因",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1635777115176",
+          "widgetName": "_widget_1635777115176",
+          "label": "库编号",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1636613365504",
+          "widgetName": "_widget_1636613365504",
+          "label": "ID",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1640073388100",
+          "widgetName": "_widget_1640073388100",
+          "label": "项目编号1",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1640073388139",
+          "widgetName": "_widget_1640073388139",
+          "label": "项目名称1",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1640073388252",
+          "widgetName": "_widget_1640073388252",
+          "label": "客户名称1",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1639207837451",
+          "widgetName": "_widget_1639207837451",
+          "label": "场站1",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1646287672710",
+          "widgetName": "_widget_1646287672710",
+          "label": "设计日期",
+          "type": "number"
+        },
+        {
+          "name": "_widget_1665383343549",
+          "widgetName": "_widget_1665383343549",
+          "label": "设备清单附件",
+          "type": "upload"
+        },
+        {
+          "name": "_widget_1736467256852",
+          "widgetName": "_widget_1736467256852",
+          "label": "设备清单附件数量",
+          "type": "number"
+        },
+        {
+          "name": "_widget_1669081522040",
+          "widgetName": "_widget_1669081522040",
+          "label": "产品类别1",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1689780854805",
+          "widgetName": "_widget_1689780854805",
+          "label": "A2.ID",
+          "type": "text"
+        },
+        {
+          "name": "_widget_1689840614213",
+          "widgetName": "_widget_1689840614213",
+          "label": "合同外行数辅助",
+          "type": "number"
+        }
+      ]
+    },
+    {
+      "name": "_widget_1718895717054",
+      "widgetName": "_widget_1718895717054",
+      "label": "采购流程发起确认",
+      "type": "checkboxgroup"
+    },
+    {
+      "name": "_widget_1642227118195",
+      "widgetName": "_widget_1642227118195",
+      "label": "审批状态",
+      "type": "radiogroup"
+    },
+    {
+      "name": "_widget_1642057775370",
+      "widgetName": "_widget_1642057775370",
+      "label": "销售负责人",
+      "type": "user"
+    },
+    {
+      "name": "_widget_1641872367831",
+      "widgetName": "_widget_1641872367831",
+      "label": "技术负责人",
+      "type": "user"
+    },
+    {
+      "name": "_widget_1686492335771",
+      "widgetName": "_widget_1686492335771",
+      "label": "采购专员",
+      "type": "user"
+    },
+    {
+      "name": "_widget_1690421259907",
+      "widgetName": "_widget_1690421259907",
+      "label": "项目经理",
+      "type": "user"
+    },
+    {
+      "name": "_widget_1642864947956",
+      "widgetName": "_widget_1642864947956",
+      "label": "主表对应辅助字段",
+      "type": "text"
+    },
+    {
+      "name": "_widget_1645456894940",
+      "widgetName": "_widget_1645456894940",
+      "label": "立项申请显示标题",
+      "type": "text"
+    },
+    {
+      "name": "_widget_1649374380274",
+      "widgetName": "_widget_1649374380274",
+      "label": "数量合计辅助字段",
+      "type": "number"
+    },
+    {
+      "name": "_widget_1649374380449",
+      "widgetName": "_widget_1649374380449",
+      "label": "防止场站重复提交辅助字段",
+      "type": "text"
+    },
+    {
+      "name": "_widget_1662430249117",
+      "widgetName": "_widget_1662430249117",
+      "label": "项目性质",
+      "type": "text"
+    },
+    {
+      "name": "_widget_1662430249137",
+      "widgetName": "_widget_1662430249137",
+      "label": "项目上级编号",
+      "type": "text"
+    },
+    {
+      "name": "_widget_1646290264904",
+      "widgetName": "_widget_1646290264904",
+      "label": "登记日期",
+      "type": "datetime"
+    },
+    {
+      "name": "_widget_1735519915141",
+      "widgetName": "_widget_1735519915141",
+      "label": "立项申请变更(Admin)",
+      "type": "linkdata"
+    },
+    {
+      "name": "_widget_1635777114922",
+      "widgetName": "_widget_1635777114922",
+      "label": "请从【方案设计(A1)】选择数据",
+      "type": "linkdata"
+    },
+    {
+      "name": "_widget_1662378699890",
+      "widgetName": "_widget_1662378699890",
+      "label": "请从其它项目中选择数据",
+      "type": "linkdata"
+    }
+  ],
+  "sysWidgets": [
+    {
+      "name": "creator"
+    },
+    {
+      "name": "updater"
+    },
+    {
+      "name": "deleter"
+    },
+    {
+      "name": "createTime"
+    },
+    {
+      "name": "updateTime"
+    },
+    {
+      "name": "deleteTime"
+    }
+  ],
+  "dataModifyTime": "2025-03-17T09:56:03.799Z"
+}
