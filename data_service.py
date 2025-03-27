@@ -9,7 +9,6 @@
 负责数据的格式化、转换和验证。
 """
 
-import os
 import pandas as pd
 from io_generator import IOChannelCalculator, FormFields
 

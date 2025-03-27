@@ -9,15 +9,9 @@
 """
 
 import os
-import traceback
-import pandas as pd
-from tkinter import messagebox, Toplevel, ttk, StringVar, Text, DISABLED, END, RIGHT, BOTTOM, BOTH, WORD, LEFT
-import tkinter as tk
 
 # 导入数据访问层和数据服务
-from api import JianDaoYunAPI
-from io_generator import FormFields, IOChannelCalculator
-from data_service import ProjectDataService, ExcelDataService, IOPointDataService, DataServiceFactory
+from data_service import  DataServiceFactory
 
 class ProjectController:
     """项目控制器类，处理业务逻辑"""

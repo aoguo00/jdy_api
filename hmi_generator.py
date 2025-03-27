@@ -12,11 +12,7 @@ HMI点表生成模块 - 用于生成亚控HMI点表
 import os
 import traceback
 from tkinter import messagebox, Toplevel, ttk
-import shutil
 from pathlib import Path
-import xlwt
-import xlrd
-from io_generator import IOChannelModels
 from config.settings import TEMPLATE_DIR, HMI_TEMPLATE
 
 class HMIGenerator:

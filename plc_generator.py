@@ -13,14 +13,9 @@ import os
 import pandas as pd
 import traceback
 from tkinter import messagebox, Toplevel, ttk
-import shutil
+
 from pathlib import Path
-import sys
-import xlwt
-import xlrd
 from io_generator import IOChannelModels
-import threading
-import tkinter as tk
 
 # 添加导入配置
 from config.settings import TEMPLATE_DIR, PLC_TEMPLATE

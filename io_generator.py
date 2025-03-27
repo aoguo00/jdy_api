@@ -12,9 +12,6 @@ IO点表生成器模块
 该模块主要负责IO点表的生成和导出功能，是整个应用的数据处理层
 JianDaoYunAPI类已移至api.py模块，实现了关注点分离
 """
-
-import requests
-import json
 import pandas as pd
 import os
 from typing import List, Dict, Any
@@ -543,21 +540,21 @@ class IOChannelCalculator:
                                         "读写属性": "R/W",  # 所有点位统一设置为R/W
                                         "保存历史": "是",   # 默认"是"
                                         "掉电保护": "是",   # 默认"是"
-                                        "量程低限": "",
-                                        "量程高限": "",
-                                        "SLL设定值": "",
+                                        "量程低限": "" if data_type == "REAL" else "/",
+                                        "量程高限": "" if data_type == "REAL" else "/",
+                                        "SLL设定值": "" if data_type == "REAL" else "/",
                                         "SLL设定点位": "",
                                         "SLL设定点位_PLC地址": "",
                                         "SLL设定点位_通讯地址": "",
-                                        "SL设定值": "",
+                                        "SL设定值": "" if data_type == "REAL" else "/",
                                         "SL设定点位": "",
                                         "SL设定点位_PLC地址": "",
                                         "SL设定点位_通讯地址": "",
-                                        "SH设定值": "",
+                                        "SH设定值": "" if data_type == "REAL" else "/",
                                         "SH设定点位": "",
                                         "SH设定点位_PLC地址": "",
                                         "SH设定点位_通讯地址": "",
-                                        "SHH设定值": "",
+                                        "SHH设定值": "" if data_type == "REAL" else "/",
                                         "SHH设定点位": "",
                                         "SHH设定点位_PLC地址": "",
                                         "SHH设定点位_通讯地址": "",
@@ -899,6 +896,19 @@ class IOChannelCalculator:
                         high_range_col_idx = IOChannelModels.get_field_index("量程高限") + 1
                         
                         # 设置所有公式字段为"/"
+                        # 设定值也需要设置为"/"
+                        sll_val_col_idx = IOChannelModels.get_field_index("SLL设定值") + 1
+                        sl_val_col_idx = IOChannelModels.get_field_index("SL设定值") + 1
+                        sh_val_col_idx = IOChannelModels.get_field_index("SH设定值") + 1
+                        shh_val_col_idx = IOChannelModels.get_field_index("SHH设定值") + 1
+                        
+                        # 设置设定值为"/"
+                        worksheet.cell(row=row, column=sll_val_col_idx).value = "/"
+                        worksheet.cell(row=row, column=sl_val_col_idx).value = "/"
+                        worksheet.cell(row=row, column=sh_val_col_idx).value = "/"
+                        worksheet.cell(row=row, column=shh_val_col_idx).value = "/"
+                        
+                        # 设置设定点位和地址为"/"
                         worksheet.cell(row=row, column=sll_pos_col_idx).value = "/"
                         worksheet.cell(row=row, column=sll_addr_col).value = "/"
                         worksheet.cell(row=row, column=sll_comm_col).value = "/"

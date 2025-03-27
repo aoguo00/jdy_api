@@ -18,8 +18,7 @@ import traceback
 import os
 
 # 导入数据访问层和控制器
-from api import JianDaoYunAPI
-from io_generator import FormFields, IOChannelCalculator
+from io_generator import FormFields
 from controller import ProjectController
 
 class DetailWindow:
