@@ -106,8 +106,7 @@ class IOChannelModels:
     # 需要用户填写的字段（将在导出时高亮显示）
     HIGHLIGHT_FIELDS = [
         "供电类型（有源/无源）", "线制", "位号", "变量名称（HMI）", "变量描述",
-        "量程低限", "量程高限", "SLL设定值", "SL设定值", "SH设定值", "SHH设定值",
-        "维护值设定"
+        "量程低限", "量程高限", "SLL设定值", "SL设定值", "SH设定值", "SHH设定值"
     ]
     
     @classmethod
@@ -570,7 +569,7 @@ class IOChannelCalculator:
                                         "HH报警": "",
                                         "HH报警_PLC地址": "",
                                         "HH报警_通讯地址": "",
-                                        "维护值设定": "",
+                                        "维护值设定": "/",
                                         "维护值设定点位": "",
                                         "维护值设定点位_PLC地址": "",
                                         "维护值设定点位_通讯地址": "",
@@ -849,6 +848,10 @@ class IOChannelCalculator:
                         low_range_col_idx = IOChannelModels.get_field_index("量程低限") + 1
                         high_range_col_idx = IOChannelModels.get_field_index("量程高限") + 1
                         # 量程低限和高限可以自行填写，这里不设置默认公式
+                        
+                        # 设置维护值设定为"/"
+                        maint_val_col_idx = IOChannelModels.get_field_index("维护值设定") + 1
+                        worksheet.cell(row=row, column=maint_val_col_idx).value = "/"
                     else:
                         # BOOL类型不需要额外地址和公式，所有相关列设置为"/"
                         # 获取所有相关列的索引
@@ -951,6 +954,10 @@ class IOChannelCalculator:
                         
                         worksheet.cell(row=row, column=low_range_col_idx).value = "/"
                         worksheet.cell(row=row, column=high_range_col_idx).value = "/"
+                        
+                        # 设置维护值设定为"/"
+                        maint_val_col_idx = IOChannelModels.get_field_index("维护值设定") + 1
+                        worksheet.cell(row=row, column=maint_val_col_idx).value = "/"
                     
                     # 在所有值设置完成后，再进行高亮标记
                     # 为需要高亮的列添加黄色背景
