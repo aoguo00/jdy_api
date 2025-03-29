@@ -530,7 +530,7 @@ class IOChannelCalculator:
                                         "模块名称": equipment_name,
                                         "模块类型": io_type,
                                         "供电类型（有源/无源）": "/" if io_type == "AO" else "",
-                                        "线制": "",
+                                        "线制": "/" if io_type == "AO" else "",
                                         "通道位号": channel_code,
                                         "位号": "",
                                         "场站名": station_name,
