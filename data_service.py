@@ -182,22 +182,34 @@ class ExcelDataService:
             
             # 1. 检查必填字段
             for field in required_fields:
-                if field in df.columns and pd.isna(row[field]):
-                    missing_fields.append(f"第{row_num}行: {field}为空")
+                if field in df.columns:
+                    field_value = row.get(field, "")
+                    # 如果不是NaN且是"/"，则跳过验证
+                    if not pd.isna(field_value) and str(field_value).strip() == "/":
+                        continue
+                    # 否则，如果是NaN或空字符串，则报错
+                    if pd.isna(field_value) or str(field_value).strip() == "":
+                        missing_fields.append(f"第{row_num}行: {field}为空")
             
             # 2. 验证供电类型
-            power_type = row.get("供电类型（有源/无源）")
+            power_type = row.get("供电类型（有源/无源）", "")
             module_type = row.get("模块类型", "")
             # 对于AO类型模块，不进行供电类型验证
             if module_type != "AO":
-                if pd.isna(power_type) or str(power_type).strip() == "":
+                # 跳过值为"/"的情况
+                if not pd.isna(power_type) and str(power_type).strip() == "/":
+                    pass
+                elif pd.isna(power_type) or str(power_type).strip() == "":
                     invalid_power_type.append(f"第{row_num}行: 供电类型为空")
                 elif str(power_type) not in ["有源", "无源"]:
                     invalid_power_type.append(f"第{row_num}行: 供电类型必须是'有源'或'无源'，当前值: {power_type}")
             
             # 3. 验证线制
-            wire_type = row.get("线制")
-            if data_type == "BOOL":
+            wire_type = row.get("线制", "")
+            # 跳过值为"/"的情况
+            if not pd.isna(wire_type) and str(wire_type).strip() == "/":
+                pass
+            elif data_type == "BOOL":
                 if pd.isna(wire_type) or str(wire_type).strip() == "":
                     invalid_wire_type_bool.append(f"第{row_num}行: 线制为空")
                 elif str(wire_type) not in ["常开", "常闭"]:
@@ -212,8 +224,14 @@ class ExcelDataService:
             if data_type == "REAL":
                 set_point_fields = ["SLL设定值", "SL设定值", "SH设定值", "SHH设定值"]
                 for field in set_point_fields:
-                    if field in df.columns and pd.isna(row[field]):
-                        missing_values_real.append(f"第{row_num}行: {field}为空")
+                    if field in df.columns:
+                        field_value = row.get(field, "")
+                        # 如果不是NaN且是"/"，则跳过验证
+                        if not pd.isna(field_value) and str(field_value).strip() == "/":
+                            continue
+                        # 否则，如果是NaN或空字符串，则报错
+                        if pd.isna(field_value) or str(field_value).strip() == "":
+                            missing_values_real.append(f"第{row_num}行: {field}为空")
         
         # 合并所有错误信息
         all_errors = []
