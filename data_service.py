@@ -172,6 +172,8 @@ class ExcelDataService:
         invalid_wire_type_bool = []
         invalid_wire_type_real = []
         missing_values_real = []
+        invalid_range_values = []  # 新增：超出量程范围的错误列表
+        invalid_order_values = []  # 新增：设定值顺序错误的列表
         
         # 验证每一行
         for idx, row in df.iterrows():
@@ -220,18 +222,77 @@ class ExcelDataService:
                 elif str(wire_type) not in ["2线制", "二线制", "三线制", "四线制","两线制"]:
                     invalid_wire_type_real.append(f"第{row_num}行: REAL类型的线制必须是'2线制'、'二线制'、'三线制'或'四线制'，当前值: {wire_type}")
             
-            # 4. 如果是REAL类型，验证设定值是否填写
+            # 4. 如果是REAL类型，进行设定值相关验证
             if data_type == "REAL":
                 set_point_fields = ["SLL设定值", "SL设定值", "SH设定值", "SHH设定值"]
+                set_point_values = {}
+                
+                # 获取量程范围
+                range_low = row.get("量程低限", None)
+                range_high = row.get("量程高限", None)
+                
+                # 先检查量程值是否有效
+                valid_range = True
+                if pd.isna(range_low) or pd.isna(range_high):
+                    valid_range = False
+                    invalid_range_values.append(f"第{row_num}行: 量程低限或量程高限未设置")
+                else:
+                    try:
+                        range_low = float(range_low)
+                        range_high = float(range_high)
+                        if range_low >= range_high:
+                            valid_range = False
+                            invalid_range_values.append(f"第{row_num}行: 量程设置错误，低限 {range_low} 应小于高限 {range_high}")
+                    except (ValueError, TypeError):
+                        valid_range = False
+                        invalid_range_values.append(f"第{row_num}行: 量程低限或量程高限不是有效数字")
+                
+                # 收集并验证各设定值
                 for field in set_point_fields:
                     if field in df.columns:
                         field_value = row.get(field, "")
+                        
                         # 如果不是NaN且是"/"，则跳过验证
                         if not pd.isna(field_value) and str(field_value).strip() == "/":
                             continue
-                        # 否则，如果是NaN或空字符串，则报错
+                        
+                        # 如果是NaN或空字符串，报错并继续
                         if pd.isna(field_value) or str(field_value).strip() == "":
                             missing_values_real.append(f"第{row_num}行: {field}为空")
+                            continue
+                        
+                        # 验证设定值是否为有效数字
+                        try:
+                            float_value = float(field_value)
+                            set_point_values[field] = float_value
+                            
+                            # 验证设定值是否在量程范围内
+                            if valid_range and (float_value < range_low or float_value > range_high):
+                                invalid_range_values.append(
+                                    f"第{row_num}行: {field} 值 {float_value} 超出量程范围 [{range_low}, {range_high}]"
+                                )
+                        except (ValueError, TypeError):
+                            invalid_range_values.append(f"第{row_num}行: {field} 不是有效数字")
+                
+                # 验证设定值的顺序关系
+                if len(set_point_values) >= 2:  # 至少要有两个值才能比较
+                    if "SLL设定值" in set_point_values and "SL设定值" in set_point_values:
+                        if set_point_values["SLL设定值"] >= set_point_values["SL设定值"]:
+                            invalid_order_values.append(
+                                f"第{row_num}行: SLL设定值 {set_point_values['SLL设定值']} 应小于 SL设定值 {set_point_values['SL设定值']}"
+                            )
+                    
+                    if "SL设定值" in set_point_values and "SH设定值" in set_point_values:
+                        if set_point_values["SL设定值"] >= set_point_values["SH设定值"]:
+                            invalid_order_values.append(
+                                f"第{row_num}行: SL设定值 {set_point_values['SL设定值']} 应小于 SH设定值 {set_point_values['SH设定值']}"
+                            )
+                    
+                    if "SH设定值" in set_point_values and "SHH设定值" in set_point_values:
+                        if set_point_values["SH设定值"] >= set_point_values["SHH设定值"]:
+                            invalid_order_values.append(
+                                f"第{row_num}行: SH设定值 {set_point_values['SH设定值']} 应小于 SHH设定值 {set_point_values['SHH设定值']}"
+                            )
         
         # 合并所有错误信息
         all_errors = []
@@ -250,6 +311,12 @@ class ExcelDataService:
         
         if missing_values_real:
             all_errors.append("模拟量设定值缺失:\n" + "\n".join(missing_values_real))
+        
+        if invalid_range_values:
+            all_errors.append("设定值超出量程范围:\n" + "\n".join(invalid_range_values))
+        
+        if invalid_order_values:
+            all_errors.append("设定值顺序错误:\n" + "\n".join(invalid_order_values))
         
         return {
             "has_errors": len(all_errors) > 0,
