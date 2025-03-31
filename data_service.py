@@ -163,37 +163,26 @@ class ExcelDataService:
         Returns:
             验证结果字典
         """
-        # 验证必填字段
-        required_fields = ["变量名称（HMI）", "变量描述"]
-        
         # 创建错误信息列表
-        missing_fields = []
         invalid_power_type = []
         invalid_wire_type_bool = []
         invalid_wire_type_real = []
-        missing_values_real = []
         invalid_range_values = []  # 新增：超出量程范围的错误列表
-        invalid_order_values = []  # 新增：设定值顺序错误的列表
+        invalid_order_values = []
         
         # 验证每一行
         for idx, row in df.iterrows():
             row_num = idx + 2  # Excel行号从2开始（跳过表头）
             
+            # 检查变量名称（HMI）是否为空，如果为空则跳过该行的所有验证
+            var_name = row.get("变量名称（HMI）", "")
+            if pd.isna(var_name) or str(var_name).strip() == "":
+                continue
+            
             # 获取此行的数据类型
             data_type = row.get("数据类型")
             
-            # 1. 检查必填字段
-            for field in required_fields:
-                if field in df.columns:
-                    field_value = row.get(field, "")
-                    # 如果不是NaN且是"/"，则跳过验证
-                    if not pd.isna(field_value) and str(field_value).strip() == "/":
-                        continue
-                    # 否则，如果是NaN或空字符串，则报错
-                    if pd.isna(field_value) or str(field_value).strip() == "":
-                        missing_fields.append(f"第{row_num}行: {field}为空")
-            
-            # 2. 验证供电类型
+            # 验证供电类型
             power_type = row.get("供电类型（有源/无源）", "")
             module_type = row.get("模块类型", "")
             # 对于AO类型模块，不进行供电类型验证
@@ -203,10 +192,10 @@ class ExcelDataService:
                     pass
                 elif pd.isna(power_type) or str(power_type).strip() == "":
                     invalid_power_type.append(f"第{row_num}行: 供电类型为空")
-                elif str(power_type) not in ["有源", "无源"]:
-                    invalid_power_type.append(f"第{row_num}行: 供电类型必须是'有源'或'无源'，当前值: {power_type}")
+                elif str(power_type).strip() not in ["有源", "无源"]:
+                    invalid_power_type.append(f"第{row_num}行: 供电类型必须是有源或无源，当前值: {power_type}")
             
-            # 3. 验证线制
+            # 验证线制
             wire_type = row.get("线制", "")
             # 跳过值为"/"的情况
             if not pd.isna(wire_type) and str(wire_type).strip() == "/":
@@ -214,15 +203,15 @@ class ExcelDataService:
             elif data_type == "BOOL":
                 if pd.isna(wire_type) or str(wire_type).strip() == "":
                     invalid_wire_type_bool.append(f"第{row_num}行: 线制为空")
-                elif str(wire_type) not in ["常开", "常闭"]:
-                    invalid_wire_type_bool.append(f"第{row_num}行: BOOL类型的线制必须是'常开'或'常闭'，当前值: {wire_type}")
+                elif str(wire_type).strip() not in ["常开", "常闭", "二线制", "2线制", "两线制", "三线制", "四线制"]:
+                    invalid_wire_type_bool.append(f"第{row_num}行: BOOL类型的线制不是有效值，当前值: {wire_type}")
             elif data_type == "REAL":
                 if pd.isna(wire_type) or str(wire_type).strip() == "":
                     invalid_wire_type_real.append(f"第{row_num}行: 线制为空")
-                elif str(wire_type) not in ["2线制", "二线制", "三线制", "四线制","两线制"]:
-                    invalid_wire_type_real.append(f"第{row_num}行: REAL类型的线制必须是'2线制'、'二线制'、'三线制'或'四线制'，当前值: {wire_type}")
+                elif str(wire_type).strip() not in ["2线制", "二线制", "三线制", "四线制", "两线制"]:
+                    invalid_wire_type_real.append(f"第{row_num}行: REAL类型的线制不是有效值，当前值: {wire_type}")
             
-            # 4. 如果是REAL类型，进行设定值相关验证
+            # 如果是REAL类型，进行设定值相关验证
             if data_type == "REAL":
                 set_point_fields = ["SLL设定值", "SL设定值", "SH设定值", "SHH设定值"]
                 set_point_values = {}
@@ -256,9 +245,8 @@ class ExcelDataService:
                         if not pd.isna(field_value) and str(field_value).strip() == "/":
                             continue
                         
-                        # 如果是NaN或空字符串，报错并继续
+                        # 如果是NaN或空字符串，跳过验证
                         if pd.isna(field_value) or str(field_value).strip() == "":
-                            missing_values_real.append(f"第{row_num}行: {field}为空")
                             continue
                         
                         # 验证设定值是否为有效数字
@@ -297,9 +285,6 @@ class ExcelDataService:
         # 合并所有错误信息
         all_errors = []
         
-        if missing_fields:
-            all_errors.append("必填字段缺失:\n" + "\n".join(missing_fields))
-        
         if invalid_power_type:
             all_errors.append("供电类型错误:\n" + "\n".join(invalid_power_type))
         
@@ -308,9 +293,6 @@ class ExcelDataService:
         
         if invalid_wire_type_real:
             all_errors.append("模拟量线制错误:\n" + "\n".join(invalid_wire_type_real))
-        
-        if missing_values_real:
-            all_errors.append("模拟量设定值缺失:\n" + "\n".join(missing_values_real))
         
         if invalid_range_values:
             all_errors.append("设定值超出量程范围:\n" + "\n".join(invalid_range_values))

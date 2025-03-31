@@ -14,6 +14,7 @@ import traceback
 from tkinter import messagebox, Toplevel, ttk
 from pathlib import Path
 from config.settings import TEMPLATE_DIR, HMI_TEMPLATE
+import pandas as pd
 
 class HMIGenerator:
     """
@@ -230,10 +231,12 @@ class HMIGenerator:
                     description = row.get("变量描述", "")
                     station_name = row.get("场站名", "未知站点")
                     comm_address = row.get("上位机通讯地址", "")
+                    channel_code = row.get("通道位号", "")
                     
-                    # 如果变量名为空，则跳过
-                    if not hmi_name:
-                        continue
+                    # 如果变量名为空，则自动补全
+                    if pd.isna(hmi_name) or str(hmi_name).strip() == "":
+                        hmi_name = f"YLDW{channel_code}"
+                        description = f"预留点位{channel_code}" if pd.isna(description) or str(description).strip() == "" else description
                     
                     # 填充数据到Excel - 行索引从表头后的第二行开始添加
                     excel_row = disc_row_start + i
@@ -270,10 +273,12 @@ class HMIGenerator:
                     base_hmi_name = row.get("变量名称（HMI）", "")
                     base_description = row.get("变量描述", "")
                     station_name = row.get("场站名", "未知站点")
+                    channel_code = row.get("通道位号", "")
                     
-                    # 如果变量名为空，则跳过
-                    if not base_hmi_name:
-                        continue
+                    # 如果变量名为空，则自动补全
+                    if pd.isna(base_hmi_name) or str(base_hmi_name).strip() == "":
+                        base_hmi_name = f"YLDW{channel_code}"
+                        base_description = f"预留点位{channel_code}" if pd.isna(base_description) or str(base_description).strip() == "" else base_description
                     
                     # 处理该行的BOOL类型扩展点位
                     for ext_point in HMIGenerator.EXTENDED_POINTS:
@@ -298,8 +303,8 @@ class HMIGenerator:
                             continue
                         
                         # 为扩展点位创建变量名和描述
-                        ext_hmi_name = base_hmi_name + point_suffix
-                        ext_description = base_description + "_" + point_name
+                        ext_hmi_name = str(base_hmi_name) + point_suffix
+                        ext_description = str(base_description) + "_" + point_name
                         
                         # 填充扩展点位数据
                         bool_ext_id_counter += 1
@@ -383,106 +388,120 @@ class HMIGenerator:
                     
                     # 填充REAL数据
                     start_id = last_disc_id + 1  # 从DISC表的最后ID+1开始
+                    
+                    # 行计数器，从表头后开始
+                    excel_row_counter = float_row_start  # 从第二行开始添加
+                    current_id_counter = start_id  # ID计数器从last_disc_id+1开始
+                    
                     for i, (_, row) in enumerate(real_df.iterrows()):
                         # 获取变量信息
                         hmi_name = row.get("变量名称（HMI）", "")
                         description = row.get("变量描述", "")
                         station_name = row.get("场站名", "未知站点")
                         comm_address = row.get("上位机通讯地址", "")
+                        channel_code = row.get("通道位号", "")
+                        
+                        # 如果变量名为空，则自动补全
+                        if pd.isna(hmi_name) or str(hmi_name).strip() == "":
+                            hmi_name = f"YLDW{channel_code}"
+                            description = f"预留点位{channel_code}" if pd.isna(description) or str(description).strip() == "" else description
                         
                         # 当前ID
-                        current_id = start_id + i
+                        current_id = current_id_counter
+                        current_id_counter += 1
                         
-                        # 填充数据到Excel - 行索引从表头后的第二行开始
-                        excel_row = float_row_start + i
-                        
-                        # 先填充必要的字段
+                        # 填充数据到Excel - 使用行计数器
                         if "TagID" in float_column_indices:
-                            float_sheet.write(excel_row, float_column_indices["TagID"], current_id, standard_style)
+                            float_sheet.write(excel_row_counter, float_column_indices["TagID"], current_id, standard_style)
                         if "TagName" in float_column_indices:
-                            float_sheet.write(excel_row, float_column_indices["TagName"], hmi_name, standard_style)
+                            float_sheet.write(excel_row_counter, float_column_indices["TagName"], hmi_name, standard_style)
                         if "Description" in float_column_indices:
-                            float_sheet.write(excel_row, float_column_indices["Description"], description, standard_style)
+                            float_sheet.write(excel_row_counter, float_column_indices["Description"], description, standard_style)
                         if "DeviceName" in float_column_indices:
-                            float_sheet.write(excel_row, float_column_indices["DeviceName"], station_name, standard_style)
+                            float_sheet.write(excel_row_counter, float_column_indices["DeviceName"], station_name, standard_style)
                         if "TagGroup" in float_column_indices:
-                            float_sheet.write(excel_row, float_column_indices["TagGroup"], station_name, standard_style)
+                            float_sheet.write(excel_row_counter, float_column_indices["TagGroup"], station_name, standard_style)
                         if "ItemName" in float_column_indices:
                             # 确保值为整数（移除可能的小数点）
                             item_name_value = str(comm_address).split('.')[0]
-                            float_sheet.write(excel_row, float_column_indices["ItemName"], item_name_value, text_style)
+                            float_sheet.write(excel_row_counter, float_column_indices["ItemName"], item_name_value, text_style)
                         
                         # 填充固定值字段
                         for field, value in float_fixed_values.items():
                             if field in float_column_indices:
-                                float_sheet.write(excel_row, float_column_indices[field], value, standard_style)
-                    
-                    # 处理REAL类型的扩展点位
-                    real_ext_row_counter = float_row_start + len(real_df)  # 从基本点位后开始添加
-                    real_ext_id_counter = last_disc_id + len(real_df)  # 从最后一个ID计数
-                    
-                    # 遍历所有数据行
-                    for _, row in io_data.iterrows():
-                        # 获取基础信息
-                        base_hmi_name = row.get("变量名称（HMI）", "")
-                        base_description = row.get("变量描述", "")
-                        station_name = row.get("场站名", "未知站点")
+                                float_sheet.write(excel_row_counter, float_column_indices[field], value, standard_style)
                         
-                        # 如果变量名为空，则跳过
-                        if not base_hmi_name:
+                        # 递增行计数器
+                        excel_row_counter += 1
+                
+                # 处理REAL类型的扩展点位
+                real_ext_row_counter = float_row_start + len(real_df)  # 从基本点位后开始添加
+                real_ext_id_counter = last_disc_id + len(real_df)  # 从最后一个ID计数
+                
+                # 遍历所有数据行
+                for _, row in io_data.iterrows():
+                    # 获取基础信息
+                    base_hmi_name = row.get("变量名称（HMI）", "")
+                    base_description = row.get("变量描述", "")
+                    station_name = row.get("场站名", "未知站点")
+                    channel_code = row.get("通道位号", "")
+                    
+                    # 如果变量名为空，则自动补全
+                    if pd.isna(base_hmi_name) or str(base_hmi_name).strip() == "":
+                        base_hmi_name = f"YLDW{channel_code}"
+                        base_description = f"预留点位{channel_code}" if pd.isna(base_description) or str(base_description).strip() == "" else base_description
+                    
+                    # 处理该行的REAL类型扩展点位
+                    for ext_point in HMIGenerator.EXTENDED_POINTS:
+                        # 只处理REAL类型点位
+                        if ext_point["is_bool"]:
+                            continue
+                            
+                        point_name = ext_point["name"]
+                        comm_addr_field = ext_point["comm_addr"]
+                        point_suffix = ext_point["suffix"]
+                        
+                        # 获取扩展点位的值和通讯地址
+                        point_value = row.get(point_name, "")
+                        point_comm_addr = row.get(comm_addr_field, "")
+                        
+                        # 如果扩展点位值为空或"/"或None，则跳过
+                        if pd.isna(point_value) or not point_value or point_value == "/":
                             continue
                         
-                        # 处理该行的REAL类型扩展点位
-                        for ext_point in HMIGenerator.EXTENDED_POINTS:
-                            # 只处理REAL类型点位
-                            if ext_point["is_bool"]:
-                                continue
-                                
-                            point_name = ext_point["name"]
-                            comm_addr_field = ext_point["comm_addr"]
-                            point_suffix = ext_point["suffix"]
-                            
-                            # 获取扩展点位的值和通讯地址
-                            point_value = row.get(point_name, "")
-                            point_comm_addr = row.get(comm_addr_field, "")
-                            
-                            # 如果扩展点位值为空或"/"，则跳过
-                            if not point_value or point_value == "/":
-                                continue
-                            
-                            # 如果通讯地址为空或"/"，则跳过
-                            if not point_comm_addr or point_comm_addr == "/":
-                                continue
-                            
-                            # 为扩展点位创建变量名和描述
-                            ext_hmi_name = base_hmi_name + point_suffix
-                            ext_description = base_description + "_" + point_name
-                            
-                            # 填充扩展点位数据
-                            real_ext_id_counter += 1
-                            
-                            if "TagID" in float_column_indices:
-                                float_sheet.write(real_ext_row_counter, float_column_indices["TagID"], real_ext_id_counter, standard_style)
-                            if "TagName" in float_column_indices:
-                                float_sheet.write(real_ext_row_counter, float_column_indices["TagName"], ext_hmi_name, standard_style)
-                            if "Description" in float_column_indices:
-                                float_sheet.write(real_ext_row_counter, float_column_indices["Description"], ext_description, standard_style)
-                            if "DeviceName" in float_column_indices:
-                                float_sheet.write(real_ext_row_counter, float_column_indices["DeviceName"], station_name, standard_style)
-                            if "TagGroup" in float_column_indices:
-                                float_sheet.write(real_ext_row_counter, float_column_indices["TagGroup"], station_name, standard_style)
-                            if "ItemName" in float_column_indices:
-                                # 确保值为整数（移除可能的小数点）
-                                item_name_value = str(point_comm_addr).split('.')[0]
-                                float_sheet.write(real_ext_row_counter, float_column_indices["ItemName"], item_name_value, text_style)
-                            
-                            # 填充固定值字段
-                            for field, value in float_fixed_values.items():
-                                if field in float_column_indices:
-                                    float_sheet.write(real_ext_row_counter, float_column_indices[field], value, standard_style)
-                            
-                            # 递增行计数器
-                            real_ext_row_counter += 1
+                        # 如果通讯地址为空或"/"或None，则跳过
+                        if pd.isna(point_comm_addr) or not point_comm_addr or point_comm_addr == "/":
+                            continue
+                        
+                        # 为扩展点位创建变量名和描述
+                        ext_hmi_name = str(base_hmi_name) + point_suffix
+                        ext_description = str(base_description) + "_" + point_name
+                        
+                        # 填充扩展点位数据
+                        real_ext_id_counter += 1
+                        
+                        if "TagID" in float_column_indices:
+                            float_sheet.write(real_ext_row_counter, float_column_indices["TagID"], real_ext_id_counter, standard_style)
+                        if "TagName" in float_column_indices:
+                            float_sheet.write(real_ext_row_counter, float_column_indices["TagName"], ext_hmi_name, standard_style)
+                        if "Description" in float_column_indices:
+                            float_sheet.write(real_ext_row_counter, float_column_indices["Description"], ext_description, standard_style)
+                        if "DeviceName" in float_column_indices:
+                            float_sheet.write(real_ext_row_counter, float_column_indices["DeviceName"], station_name, standard_style)
+                        if "TagGroup" in float_column_indices:
+                            float_sheet.write(real_ext_row_counter, float_column_indices["TagGroup"], station_name, standard_style)
+                        if "ItemName" in float_column_indices:
+                            # 确保值为整数（移除可能的小数点）
+                            item_name_value = str(point_comm_addr).split('.')[0]
+                            float_sheet.write(real_ext_row_counter, float_column_indices["ItemName"], item_name_value, text_style)
+                        
+                        # 填充固定值字段
+                        for field, value in float_fixed_values.items():
+                            if field in float_column_indices:
+                                float_sheet.write(real_ext_row_counter, float_column_indices[field], value, standard_style)
+                        
+                        # 递增行计数器
+                        real_ext_row_counter += 1
                 
                 # 保存工作簿
                 workbook.save(xls_output_path)
@@ -708,6 +727,12 @@ class HMIGenerator:
                     description = row.get("变量描述", "")
                     station_name = row.get("场站名", "未知站点")
                     comm_address = row.get("上位机通讯地址", "")
+                    channel_code = row.get("通道位号", "")
+                    
+                    # 如果变量名为空，则自动补全
+                    if pd.isna(hmi_name) or str(hmi_name).strip() == "":
+                        hmi_name = f"YLDW{channel_code}"
+                        description = f"预留点位{channel_code}" if pd.isna(description) or str(description).strip() == "" else description
                     
                     # 当前ID
                     current_id = current_id_counter
@@ -743,10 +768,12 @@ class HMIGenerator:
                     base_hmi_name = row.get("变量名称（HMI）", "")
                     base_description = row.get("变量描述", "")
                     station_name = row.get("场站名", "未知站点")
+                    channel_code = row.get("通道位号", "")
                     
-                    # 如果变量名为空，则跳过
-                    if not base_hmi_name:
-                        continue
+                    # 如果变量名为空，则自动补全
+                    if pd.isna(base_hmi_name) or str(base_hmi_name).strip() == "":
+                        base_hmi_name = f"YLDW{channel_code}"
+                        base_description = f"预留点位{channel_code}" if pd.isna(base_description) or str(base_description).strip() == "" else base_description
                     
                     # 处理该行的REAL类型扩展点位
                     for ext_point in HMIGenerator.EXTENDED_POINTS:
@@ -762,17 +789,17 @@ class HMIGenerator:
                         point_value = row.get(point_name, "")
                         point_comm_addr = row.get(comm_addr_field, "")
                         
-                        # 如果扩展点位值为空或"/"，则跳过
-                        if not point_value or point_value == "/":
+                        # 如果扩展点位值为空或"/"或None，则跳过
+                        if pd.isna(point_value) or not point_value or point_value == "/":
                             continue
                         
-                        # 如果通讯地址为空或"/"，则跳过
-                        if not point_comm_addr or point_comm_addr == "/":
+                        # 如果通讯地址为空或"/"或None，则跳过
+                        if pd.isna(point_comm_addr) or not point_comm_addr or point_comm_addr == "/":
                             continue
                         
                         # 为扩展点位创建变量名和描述
-                        ext_hmi_name = base_hmi_name + point_suffix
-                        ext_description = base_description + "_" + point_name
+                        ext_hmi_name = str(base_hmi_name) + point_suffix
+                        ext_description = str(base_description) + "_" + point_name
                         
                         # 填充扩展点位数据
                         current_id_counter += 1

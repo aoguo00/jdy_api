@@ -216,10 +216,12 @@ class PLCGenerator:
                     plc_address = row.get("PLC绝对地址", "")
                     description = row.get("变量描述", "")
                     data_type = row.get("数据类型", "")
+                    channel_code = row.get("通道位号", "")
                     
-                    # 如果变量名为空，则跳过
-                    if not var_name:
-                        continue
+                    # 如果变量名为空，则自动补全
+                    if pd.isna(var_name) or str(var_name).strip() == "":
+                        var_name = f"YLDW{channel_code}"
+                        description = f"预留点位{channel_code}" if pd.isna(description) or str(description).strip() == "" else description
                     
                     # 填充基础变量数据
                     worksheet.write(excel_row_counter, var_name_col, var_name, common_style)
@@ -251,17 +253,17 @@ class PLCGenerator:
                         point_value = row.get(point_name, "")
                         point_plc_addr = row.get(plc_addr_field, "")
                         
-                        # 如果扩展点位值为空或"/"，则跳过
-                        if not point_value or point_value == "/":
+                        # 如果扩展点位值为空或"/"或None，则跳过
+                        if pd.isna(point_value) or not point_value or point_value == "/":
                             continue
                         
-                        # 如果PLC地址为空或"/"，则跳过
-                        if not point_plc_addr or point_plc_addr == "/":
+                        # 如果PLC地址为空或"/"或None，则跳过
+                        if pd.isna(point_plc_addr) or not point_plc_addr or point_plc_addr == "/":
                             continue
                         
                         # 为扩展点位创建变量名和描述
-                        ext_var_name = var_name + point_suffix
-                        ext_description = description + " " + point_name.replace("_PLC地址", "")
+                        ext_var_name = str(var_name) + point_suffix
+                        ext_description = str(description) + " " + point_name.replace("_PLC地址", "")
                         
                         # 确定数据类型(根据地址判断)
                         ext_data_type = "REAL" if point_plc_addr.startswith("%MD") else "BOOL"
