@@ -158,23 +158,46 @@ def upload_hmi_table(io_data, root_window=None):
         
         # 创建临时文件
         temp_dir = tempfile.gettempdir()
-        temp_file_path = os.path.join(temp_dir, "HMI点表.xls")
+        temp_hmi_file_path = os.path.join(temp_dir, "HMI点表.xls")
+        temp_dict_file_path = os.path.join(temp_dir, "数据词典点表.xls")
         
-        # 调用HMI生成器生成点表
-        success = HMIGenerator.generate_hmi_table(
+        # 调用HMI生成器生成IO_Server点表
+        hmi_success = HMIGenerator.generate_hmi_table(
             io_data=io_data,
-            output_path=temp_file_path,
+            output_path=temp_hmi_file_path,
             root_window=root_window
         )
         
-        if not success:
+        if not hmi_success:
             return False
+            
+        # 调用HMI生成器生成数据词典点表
+        dict_success = HMIGenerator.generate_data_dictionary_table(
+            io_data=io_data,
+            output_path=temp_dict_file_path,
+            root_window=root_window
+        )
         
-        # 上传到简道云
-        upload_success = upload_file(temp_file_path, "HMI点表")
+        if not dict_success:
+            messagebox.showwarning("警告", "HMI点表生成成功，但数据词典点表生成失败。")
         
-        if upload_success:
-            messagebox.showinfo("成功", "HMI点表已成功生成并上传到简道云!")
+        # 上传HMI点表到简道云
+        hmi_upload_success = upload_file(temp_hmi_file_path, "HMI点表")
+        
+        # 如果数据词典点表生成成功，则上传
+        dict_upload_success = False
+        if dict_success:
+            dict_upload_success = upload_file(temp_dict_file_path, "数据词典点表")
+        
+        # 根据上传结果显示不同的提示信息
+        if hmi_upload_success and dict_upload_success:
+            messagebox.showinfo("成功", "HMI点表和数据词典点表已成功生成并上传到简道云!")
+            return True
+        elif hmi_upload_success and not dict_upload_success and dict_success:
+            messagebox.showinfo("部分成功", "HMI点表已成功上传，但数据词典点表上传失败。")
+            return True
+        elif hmi_upload_success and not dict_success:
+            messagebox.showinfo("部分成功", "HMI点表已成功上传，但数据词典点表生成失败。")
             return True
         else:
             messagebox.showerror("错误", "上传HMI点表到简道云失败!")

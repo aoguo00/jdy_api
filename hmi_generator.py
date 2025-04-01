@@ -16,6 +16,9 @@ from pathlib import Path
 from config.settings import TEMPLATE_DIR, HMI_TEMPLATE
 import pandas as pd
 
+# 添加数据词典模板配置常量
+DATA_DICTIONARY_TEMPLATE = "数据词典点表模板.xls"
+
 class HMIGenerator:
     """
     HMI点表生成器类
@@ -855,4 +858,389 @@ class HMIGenerator:
                 export_window.destroy()
             error_details = traceback.format_exc()
             messagebox.showerror("错误", f"生成HMI REAL点表时发生错误:\n{str(e)}\n\n详细错误信息:\n{error_details}")
+            return False
+    
+    @staticmethod
+    def generate_data_dictionary_table(io_data, output_path, root_window=None):
+        """
+        生成数据词典点表
+        
+        Args:
+            io_data: 上传的IO点表数据(DataFrame)
+            output_path: 输出文件路径
+            root_window: 父窗口，用于显示进度窗口
+            
+        Returns:
+            bool: 操作是否成功
+        """
+        # 导入xlrd和xlwt库，确保它们在这个方法中可用
+        import xlrd 
+        import xlwt
+        
+        try:
+            # 显示导出进度窗口
+            export_window = None
+            if root_window:
+                export_window = Toplevel(root_window)
+                export_window.title("正在导出数据词典点表")
+                export_window.geometry("300x100")
+                export_window.transient(root_window)
+                export_window.grab_set()
+                
+                # 设置窗口在主窗口中央显示
+                export_window.withdraw()  # 先隐藏窗口
+                export_window.update()    # 更新窗口信息
+                
+                # 计算窗口位置
+                x = root_window.winfo_x() + (root_window.winfo_width() - 300) // 2
+                y = root_window.winfo_y() + (root_window.winfo_height() - 100) // 2
+                export_window.geometry(f"300x100+{x}+{y}")
+                
+                export_window.deiconify()  # 显示窗口
+                
+                export_label = ttk.Label(export_window, text="正在生成数据词典点表，请稍候...", font=("Microsoft YaHei", 10))
+                export_label.pack(pady=20)
+                export_window.update()
+            
+            # 筛选出BOOL和REAL类型数据
+            bool_df = io_data[io_data["数据类型"] == "BOOL"].copy()
+            real_df = io_data[io_data["数据类型"] == "REAL"].copy()
+            
+            # 检查本地模板文件是否存在
+            template_file = os.path.join(TEMPLATE_DIR, DATA_DICTIONARY_TEMPLATE)
+            if not os.path.exists(template_file):
+                if export_window:
+                    export_window.destroy()
+                messagebox.showwarning("警告", f"找不到模板文件: {template_file}，请确保该文件在 {TEMPLATE_DIR} 目录下！")
+                return False
+            
+            # 定义输出路径，只使用.xls格式
+            xls_output_path = str(Path(output_path).with_suffix('.xls'))
+            
+            try:
+                # 确保目标文件不存在
+                if os.path.exists(xls_output_path):
+                    os.remove(xls_output_path)
+                
+                # 读取模板获取结构
+                template_workbook = xlrd.open_workbook(template_file)
+                
+                # 创建新的工作簿
+                workbook = xlwt.Workbook(encoding='utf-8')
+                
+                # 创建宋体字体样式，大小为10
+                font = xlwt.Font()
+                font.name = '宋体'
+                font.height = 20 * 10  # 10号字体对应的高度是200
+                
+                # 设置文本格式
+                text_style = xlwt.XFStyle()
+                text_style.num_format_str = '@'
+                text_style.font = font
+                
+                # 设置标准单元格样式（非文本格式）
+                standard_style = xlwt.XFStyle()
+                standard_style.font = font
+                
+                # 首先复制模板中的所有工作表
+                disc_sheet_idx = -1
+                float_sheet_idx = -1
+                
+                # 第一遍循环，复制所有工作表并获取IO_DISC和IO_FLOAT的索引
+                for idx in range(template_workbook.nsheets):
+                    template_sheet = template_workbook.sheet_by_index(idx)
+                    sheet_name = template_sheet.name
+                    
+                    # 复制工作表
+                    new_sheet = workbook.add_sheet(sheet_name)
+                    
+                    # 复制表头和所有内容
+                    for row in range(template_sheet.nrows):
+                        for col in range(template_sheet.ncols):
+                            value = template_sheet.cell_value(row, col)
+                            # 使用宋体字体样式写入单元格
+                            new_sheet.write(row, col, value, standard_style)
+                    
+                    # 记录特殊工作表的索引
+                    if sheet_name == "IO_DISC":
+                        disc_sheet_idx = idx
+                    elif sheet_name == "IO_FLOAT":
+                        float_sheet_idx = idx
+                
+                # 检查是否找到了IO_DISC和IO_FLOAT工作表
+                if disc_sheet_idx == -1 or float_sheet_idx == -1:
+                    raise ValueError("模板文件中没有找到IO_DISC或IO_FLOAT工作表")
+                
+                # 获取工作表引用
+                disc_sheet = workbook.get_sheet(disc_sheet_idx)
+                float_sheet = workbook.get_sheet(float_sheet_idx)
+                
+                # 获取模板中IO_DISC工作表
+                template_disc_sheet = template_workbook.sheet_by_index(disc_sheet_idx)
+                
+                # 查找表中的所有列索引和列名
+                disc_column_indices = {}
+                for col in range(template_disc_sheet.ncols):
+                    header = template_disc_sheet.cell_value(0, col)
+                    if header:
+                        disc_column_indices[header] = col
+                
+                # 获取模板中IO_FLOAT工作表
+                template_float_sheet = template_workbook.sheet_by_index(float_sheet_idx)
+                
+                # 查找表中的所有列索引和列名
+                float_column_indices = {}
+                for col in range(template_float_sheet.ncols):
+                    header = template_float_sheet.cell_value(0, col)
+                    if header:
+                        float_column_indices[header] = col
+                
+                # 设置IO_DISC工作簿的固定值
+                disc_fixed_values = {
+                    "ContainerType": "1",
+                    "InitialValueBool": "false",
+                    "SecurityZoneID": "None",
+                    "RecordEvent": "false",
+                    "SaveValue": "true",
+                    "SaveParameter": "true",
+                    "AccessByOtherApplication": "false",
+                    "ExtentField1": "",
+                    "ExtentField2": "",
+                    "HisRecMode": "2",
+                    "HisRecInterval": "60",
+                    "AlarmType": "256",
+                    "CloseString": "关闭",
+                    "OpenString": "打开",
+                    "AlarmDelay": "0",
+                    "DiscInhibitor": "",
+                    "ExtentField3": "",
+                    "ExtentField4": "",
+                    "ExtentField5": "",
+                    "ExtentField6": "",
+                    "ExtentField7": "",
+                    "ExtentField8": "",
+                    "CloseToOpen": "关到开",
+                    "OpenToClose": "开到关",
+                    "StateEnumTable": "",
+                    "IOConfigControl": "true",
+                    "IOEnable": "true",
+                    "ForceRead": "false",
+                    "ForceWrite": "false",
+                    "DataConvertMode": "1"
+                }
+                
+                # 设置IO_FLOAT工作簿的固定值
+                float_fixed_values = {
+                    "ContainerType": "1",
+                    "MaxValue": "1000000000",
+                    "MinValue": "-1000000000",
+                    "InitialValue": "0",
+                    "Sensitivity": "0",
+                    "EngineerUnits": "",
+                    "SecurityZoneID": "None",
+                    "RecordEvent": "false",
+                    "SaveValue": "true",
+                    "SaveParameter": "true",
+                    "AccessByOtherApplication": "false",
+                    "ExtentField1": "",
+                    "ExtentField2": "",
+                    "HisRecMode": "2",
+                    "HisRecChangeDeadband": "0",
+                    "HisRecInterval": "60",
+                    "HiHiText": "高高",
+                    "HiHiPriority": "1",
+                    "HiHiInhibitor": "",
+                    "HiText": "高",
+                    "HiPriority": "1",
+                    "HiInhibitor": "",
+                    "LoText": "低",
+                    "LoPriority": "1",
+                    "LoInhibitor": "",
+                    "LoLoText": "低低",
+                    "LoLoPriority": "1",
+                    "LoLoInhibitor": "",
+                    "LimitDeadband": "0",
+                    "LimitDelay": "0",
+                    "DevMajorEnabled": "false",
+                    "DevMajorLimit": "80",
+                    "DevMajorText": "主要",
+                    "DevMajorPriority": "1",
+                    "MajorInhibitor": "",
+                    "DevMinorEnabled": "false",
+                    "DevMinorLimit": "20",
+                    "DevMinorText": "次要",
+                    "DevMinorPriority": "1",
+                    "MinorInhibitor": "",
+                    "DevDeadband": "0",
+                    "DevTargetValue": "100",
+                    "DevDelay": "0",
+                    "RocEnabled": "false",
+                    "RocPercent": "20",
+                    "RocTimeUnit": "0",
+                    "RocText": "变化率",
+                    "RocDelay": "0",
+                    "RocPriority": "1",
+                    "RocInhibitor": "",
+                    "StatusAlarmTableID": "0",
+                    "StatusAlarmEnabled": "false",
+                    "StatusAlarmTableName": "",
+                    "StatusInhibitor": "",
+                    "AlarmGroup": "",
+                    "ExtentField3": "",
+                    "ExtentField4": "",
+                    "ExtentField5": "",
+                    "ExtentField6": "",
+                    "ExtentField7": "",
+                    "ExtentField8": "",
+                    "StateEnumTable": "",
+                    "IOConfigControl": "true",
+                    "MaxRaw": "1000000000",
+                    "MinRaw": "-1000000000",
+                    "IOEnable": "true",
+                    "ForceRead": "false",
+                    "ForceWrite": "false",
+                    "DataConvertMode": "1",
+                    "NlnTableID": "0",
+                    "AddupMaxVal": "0",
+                    "AddupMinVal": "0"
+                }
+                
+                # 设置从第二行开始填充数据（表头是第一行）
+                disc_row_start = 1
+                
+                # 填充BOOL数据 - 从表头后的第二行开始添加
+                for i, (_, row) in enumerate(bool_df.iterrows()):
+                    # 获取变量信息
+                    hmi_name = row.get("变量名称（HMI）", "")
+                    description = row.get("变量描述", "")
+                    station_name = row.get("场站名", "未知站点")
+                    alarm_priority = row.get("报警等级", "1")  # 获取报警等级，默认为1
+                    
+                    # 如果变量名为空，则自动补全
+                    if pd.isna(hmi_name) or str(hmi_name).strip() == "":
+                        channel_code = row.get("通道位号", "")
+                        hmi_name = f"YLDW{channel_code}"
+                        description = f"预留点位{channel_code}" if pd.isna(description) or str(description).strip() == "" else description
+                    
+                    # 如果报警等级为空，则设为默认值1
+                    if pd.isna(alarm_priority) or str(alarm_priority).strip() == "":
+                        alarm_priority = "1"
+                    
+                    # 当前行索引
+                    excel_row = disc_row_start + i
+                    
+                    # 填充必要的字段
+                    if "TagID" in disc_column_indices:
+                        disc_sheet.write(excel_row, disc_column_indices["TagID"], excel_row, standard_style)
+                    if "TagName" in disc_column_indices:
+                        disc_sheet.write(excel_row, disc_column_indices["TagName"], hmi_name, standard_style)
+                    if "Description" in disc_column_indices:
+                        disc_sheet.write(excel_row, disc_column_indices["Description"], description, standard_style)
+                    if "AlarmPriority" in disc_column_indices:
+                        disc_sheet.write(excel_row, disc_column_indices["AlarmPriority"], alarm_priority, standard_style)
+                    if "AlarmGroup" in disc_column_indices:
+                        disc_sheet.write(excel_row, disc_column_indices["AlarmGroup"], station_name, standard_style)
+                    if "IOAccess" in disc_column_indices:
+                        io_access = f"Sever1.{hmi_name}.Value"
+                        disc_sheet.write(excel_row, disc_column_indices["IOAccess"], io_access, standard_style)
+                    
+                    # 填充固定值字段
+                    for field, value in disc_fixed_values.items():
+                        if field in disc_column_indices:
+                            disc_sheet.write(excel_row, disc_column_indices[field], value, standard_style)
+                
+                # 确定REAL数据的起始ID
+                float_start_id = disc_row_start + len(bool_df)
+                
+                # 填充REAL数据
+                for i, (_, row) in enumerate(real_df.iterrows()):
+                    # 获取变量信息
+                    hmi_name = row.get("变量名称（HMI）", "")
+                    description = row.get("变量描述", "")
+                    
+                    # 如果变量名为空，则自动补全
+                    if pd.isna(hmi_name) or str(hmi_name).strip() == "":
+                        channel_code = row.get("通道位号", "")
+                        hmi_name = f"YLDW{channel_code}"
+                        description = f"预留点位{channel_code}" if pd.isna(description) or str(description).strip() == "" else description
+                    
+                    # 获取各类限值和报警信息
+                    shh_value = row.get("SHH设定值", "")
+                    sh_value = row.get("SH设定值", "")
+                    sl_value = row.get("SL设定值", "")
+                    sll_value = row.get("SLL设定值", "")
+                    
+                    # 判断是否启用各类报警
+                    hihi_enabled = "true" if not pd.isna(shh_value) and shh_value and shh_value != "/" else "false"
+                    hi_enabled = "true" if not pd.isna(sh_value) and sh_value and sh_value != "/" else "false"
+                    lo_enabled = "true" if not pd.isna(sl_value) and sl_value and sl_value != "/" else "false"
+                    lolo_enabled = "true" if not pd.isna(sll_value) and sll_value and sll_value != "/" else "false"
+                    
+                    # 当前行索引和ID
+                    excel_row = disc_row_start + i
+                    current_id = float_start_id + i
+                    
+                    # 填充必要的字段
+                    if "TagID" in float_column_indices:
+                        float_sheet.write(excel_row, float_column_indices["TagID"], current_id, standard_style)
+                    if "TagName" in float_column_indices:
+                        float_sheet.write(excel_row, float_column_indices["TagName"], hmi_name, standard_style)
+                    if "Description" in float_column_indices:
+                        float_sheet.write(excel_row, float_column_indices["Description"], description, standard_style)
+                    if "IOAccess" in float_column_indices:
+                        io_access = f"Sever1.{hmi_name}.Value"
+                        float_sheet.write(excel_row, float_column_indices["IOAccess"], io_access, standard_style)
+                    
+                    # 填充报警启用和限值信息
+                    if "HiHiEnabled" in float_column_indices:
+                        float_sheet.write(excel_row, float_column_indices["HiHiEnabled"], hihi_enabled, standard_style)
+                    if "HiHiLimit" in float_column_indices and not pd.isna(shh_value) and shh_value and shh_value != "/":
+                        float_sheet.write(excel_row, float_column_indices["HiHiLimit"], shh_value, standard_style)
+                    
+                    if "HiEnabled" in float_column_indices:
+                        float_sheet.write(excel_row, float_column_indices["HiEnabled"], hi_enabled, standard_style)
+                    if "HiLimit" in float_column_indices and not pd.isna(sh_value) and sh_value and sh_value != "/":
+                        float_sheet.write(excel_row, float_column_indices["HiLimit"], sh_value, standard_style)
+                    
+                    if "LoEnabled" in float_column_indices:
+                        float_sheet.write(excel_row, float_column_indices["LoEnabled"], lo_enabled, standard_style)
+                    if "LoLimit" in float_column_indices and not pd.isna(sl_value) and sl_value and sl_value != "/":
+                        float_sheet.write(excel_row, float_column_indices["LoLimit"], sl_value, standard_style)
+                    
+                    if "LoLoEnabled" in float_column_indices:
+                        float_sheet.write(excel_row, float_column_indices["LoLoEnabled"], lolo_enabled, standard_style)
+                    if "LoLoLimit" in float_column_indices and not pd.isna(sll_value) and sll_value and sll_value != "/":
+                        float_sheet.write(excel_row, float_column_indices["LoLoLimit"], sll_value, standard_style)
+                    
+                    # 填充固定值字段
+                    for field, value in float_fixed_values.items():
+                        if field in float_column_indices:
+                            float_sheet.write(excel_row, float_column_indices[field], value, standard_style)
+                
+                # 保存工作簿
+                workbook.save(xls_output_path)
+                
+                # 检查文件是否生成成功
+                if not (os.path.exists(xls_output_path) and os.path.getsize(xls_output_path) > 0):
+                    raise ValueError(f"生成的文件不存在或为空: {xls_output_path}")
+                
+                # 关闭导出进度窗口
+                if export_window:
+                    export_window.destroy()
+                
+                return True
+                
+            except Exception as e:
+                error_msg = f"生成数据词典点表文件失败: {str(e)}\n{traceback.format_exc()}"
+                messagebox.showerror("错误", error_msg)
+                
+                if export_window:
+                    export_window.destroy()
+                return False
+                
+        except Exception as e:
+            if export_window and export_window.winfo_exists():
+                export_window.destroy()
+            error_details = traceback.format_exc()
+            messagebox.showerror("错误", f"生成数据词典点表时发生错误:\n{str(e)}\n\n详细错误信息:\n{error_details}")
             return False 
