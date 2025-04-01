@@ -229,4 +229,50 @@ def upload_plc_table(io_data, root_window=None):
     except Exception as e:
         error_details = traceback.format_exc()
         messagebox.showerror("错误", f"生成或上传PLC点表时发生错误:\n{str(e)}\n\n详细错误信息:\n{error_details}")
+        return False
+
+
+def upload_fat_table(io_data, root_window=None):
+    """
+    生成并上传FAT点表到简道云
+    
+    参数:
+        io_data (pandas.DataFrame): IO数据
+        root_window (tk.Tk): 主窗口对象，用于创建进度窗口
+        
+    返回:
+        bool: 上传成功返回True，失败返回False
+    """
+    try:
+        # 导入FAT生成器
+        from FAT_generator import FATGenerator
+        import tempfile
+        
+        # 创建临时文件
+        temp_dir = tempfile.gettempdir()
+        temp_file_path = os.path.join(temp_dir, "FAT点表.xls")
+        
+        # 调用FAT生成器生成点表
+        success = FATGenerator.generate_fat_table(
+            io_data=io_data,
+            output_path=temp_file_path,
+            root_window=root_window
+        )
+        
+        if not success:
+            return False
+        
+        # 上传到简道云
+        upload_success = upload_file(temp_file_path, "FAT点表")
+        
+        if upload_success:
+            messagebox.showinfo("成功", "FAT点表已成功生成并上传到简道云!")
+            return True
+        else:
+            messagebox.showerror("错误", "上传FAT点表到简道云失败!")
+            return False
+            
+    except Exception as e:
+        error_details = traceback.format_exc()
+        messagebox.showerror("错误", f"生成或上传FAT点表时发生错误:\n{str(e)}\n\n详细错误信息:\n{error_details}")
         return False 

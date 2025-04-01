@@ -193,4 +193,29 @@ class ProjectController:
         upload_plc_table(
             io_data=plc_data,
             root_window=root_window
+        )
+    
+    def generate_fat_io_table(self, root_window):
+        """
+        生成FAT点表并上传到简道云
+        
+        Args:
+            root_window: 主窗口，用于显示进度或错误
+        """
+        if not self.current_equipment_data:
+            raise ValueError("没有可用的设备数据")
+            
+        if self.uploaded_io_data is None:
+            raise ValueError("请先上传已补全信息的IO点表")
+            
+        # 使用IO点表数据服务生成FAT点表
+        fat_data = self.io_point_data_service.generate_fat_table(self.uploaded_io_data)
+        
+        # 导入上传模块
+        from upload import upload_fat_table
+        
+        # 调用生成并上传FAT点表的函数
+        upload_fat_table(
+            io_data=fat_data,
+            root_window=root_window
         ) 

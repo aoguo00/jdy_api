@@ -249,6 +249,7 @@ class ProjectQueryApp:
         button_frame.columnconfigure(3, weight=1)  # 上传点表按钮列
         button_frame.columnconfigure(4, weight=1)  # 生成HMI点表按钮列
         button_frame.columnconfigure(5, weight=1)  # 生成PLC点表按钮列
+        button_frame.columnconfigure(6, weight=1)  # 新增FAT点表按钮列
         
         # 查询按钮
         self.search_button = ttk.Button(button_frame, text="查询", command=self.search_project, width=8)
@@ -265,14 +266,18 @@ class ProjectQueryApp:
         # 上传点表按钮
         self.upload_io_button = ttk.Button(button_frame, text="上传点表", command=self.upload_io_table, width=8)
         self.upload_io_button.grid(row=0, column=3, padx=3, pady=5, sticky='ew')
+
+        # 上传FAT点表按钮
+        self.generate_fat_io_button = ttk.Button(button_frame, text="上传FAT点表", command=self.generate_fat_io_table, width=12)
+        self.generate_fat_io_button.grid(row=0, column=4, padx=3, pady=5, sticky='ew')
         
         # 生成HMI点表按钮
         self.generate_hmi_io_button = ttk.Button(button_frame, text="上传HMI点表", command=self.generate_hmi_io_table, width=12)
-        self.generate_hmi_io_button.grid(row=0, column=4, padx=3, pady=5, sticky='ew')
+        self.generate_hmi_io_button.grid(row=0, column=5, padx=3, pady=5, sticky='ew')
         
         # 生成PLC点表按钮
         self.generate_plc_io_button = ttk.Button(button_frame, text="上传PLC点表", command=self.generate_plc_io_table, width=12)
-        self.generate_plc_io_button.grid(row=0, column=5, padx=3, pady=5, sticky='ew')
+        self.generate_plc_io_button.grid(row=0, column=6, padx=3, pady=5, sticky='ew')
         
         # 文件信息Frame - 创建但初始不显示
         self.file_info_frame = ttk.Frame(button_frame)
@@ -688,6 +693,19 @@ class ProjectQueryApp:
             error_details = traceback.format_exc()
             messagebox.showerror("错误", f"生成PLC点表时发生错误:\n{str(e)}\n\n详细错误信息:\n{error_details}")
         
+    def generate_fat_io_table(self):
+        """
+        生成FAT点表并上传到简道云
+        """
+        try:
+            # 使用控制器调用逻辑方法
+            self.controller.generate_fat_io_table(self.root)
+        except ValueError as e:
+            messagebox.showwarning("警告", str(e))
+        except Exception as e:
+            error_details = traceback.format_exc()
+            messagebox.showerror("错误", f"生成FAT点表时发生错误:\n{str(e)}\n\n详细错误信息:\n{error_details}")
+        
     def upload_io_table(self):
         """
         上传已补全信息的IO点表Excel文件
@@ -808,11 +826,12 @@ class ProjectQueryApp:
     def update_button_states(self):
         """根据数据状态更新按钮的启用/禁用状态"""
         # 安全检查：确保属性存在
-        if not hasattr(self, 'generate_hmi_io_button') or not hasattr(self, 'generate_plc_io_button'):
+        if not hasattr(self, 'generate_hmi_io_button') or not hasattr(self, 'generate_plc_io_button') or not hasattr(self, 'generate_fat_io_button'):
             return
             
         # 如果已上传点表数据，启用HMI和PLC点表生成按钮，否则禁用
         if self.controller.uploaded_io_data is not None:
+            self.generate_fat_io_button.config(state="normal")
             self.generate_hmi_io_button.config(state="normal")
             self.generate_plc_io_button.config(state="normal")
             
@@ -821,14 +840,15 @@ class ProjectQueryApp:
                 # 设置文件信息区域的列权重
                 self.root.update_idletasks()  # 确保UI已更新
                 button_frame = self.file_info_frame.master
-                button_frame.columnconfigure(6, weight=1)
+                button_frame.columnconfigure(7, weight=1)
                 
                 # 显示文件信息框架
                 file_name = os.path.basename(self.controller.uploaded_io_file_path)
                 self.file_name_label.config(text=f"已上传: {file_name}")
                 self.file_icon_label.config(text="📊")
-                self.file_info_frame.grid(row=0, column=6, padx=3, pady=5, sticky='e')
+                self.file_info_frame.grid(row=0, column=7, padx=3, pady=5, sticky='e')
         else:
+            self.generate_fat_io_button.config(state="disabled")
             self.generate_hmi_io_button.config(state="disabled")
             self.generate_plc_io_button.config(state="disabled")
             

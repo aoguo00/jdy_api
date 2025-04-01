@@ -359,6 +359,23 @@ class IOPointDataService:
         
         # 暂时返回原始数据，后续实现具体转换逻辑
         return io_data
+        
+    @staticmethod
+    def generate_fat_table(io_data):
+        """
+        生成FAT点表数据
+        
+        Args:
+            io_data: 原始IO点表数据(DataFrame)
+            
+        Returns:
+            转换后的FAT点表数据(DataFrame)
+        """
+        # 这里实现FAT点表生成逻辑
+        # 可以进行字段映射、数据转换等操作
+        
+        # 暂时返回原始数据，后续实现具体转换逻辑
+        return io_data
 
 
 # 工厂类，用于创建和管理各种数据服务实例
