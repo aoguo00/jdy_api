@@ -158,6 +158,16 @@ class HMIGenerator:
                 standard_style = xlwt.XFStyle()
                 standard_style.font = font
                 
+                # 设置数字格式样式
+                number_style = xlwt.XFStyle()
+                number_style.font = font
+                number_style.num_format_str = '0'  # 整数格式
+                
+                # 设置浮点数格式样式
+                float_style = xlwt.XFStyle()
+                float_style.font = font
+                float_style.num_format_str = '0.000000'  # 浮点数格式
+                
                 # 首先复制模板中的所有工作表
                 disc_sheet_idx = -1
                 float_sheet_idx = -1
@@ -209,20 +219,24 @@ class HMIGenerator:
                     "DeviceSeries": "ModbusTCP",
                     "DeviceSeriesType": "0",
                     "CollectControl": "否",
-                    "CollectInterval": "1000",
-                    "CollectOffset": "0",
-                    "TimeZoneBias": "0",
-                    "TimeAdjustment": "0",
+                    "CollectInterval": 1000,  # 使用数字而非字符串
+                    "CollectOffset": 0,  # 使用数字而非字符串
+                    "TimeZoneBias": 0,  # 使用数字而非字符串
+                    "TimeAdjustment": 0,  # 使用数字而非字符串
                     "Enable": "是",
                     "ForceWrite": "否",
-                    "RegName": "0",
-                    "RegType": "0",
+                    "RegName": 0,  # 使用数字而非字符串
+                    "RegType": 0,  # 使用数字而非字符串
                     "ItemDataType": "BIT",
                     "ItemAccessMode": "读写",
                     "HisRecordMode": "不记录",
-                    "HisDeadBand": "0.000000",
-                    "HisInterval": "60"
+                    "HisDeadBand": 0.000000,  # 使用数字而非字符串
+                    "HisInterval": 60  # 使用数字而非字符串
                 }
+                
+                # 数字字段列表
+                number_fields = ["TagID", "CollectInterval", "CollectOffset", "TimeZoneBias", "TimeAdjustment", 
+                                "RegName", "RegType", "HisDeadBand", "HisInterval"]
                 
                 # 设置从第二行开始填充数据（表头是第一行）
                 disc_row_start = 1
@@ -246,7 +260,7 @@ class HMIGenerator:
                     
                     # 先填充必要的字段
                     if "TagID" in column_indices:
-                        disc_sheet.write(excel_row, column_indices["TagID"], excel_row, standard_style)
+                        disc_sheet.write(excel_row, column_indices["TagID"], excel_row, number_style)
                     if "TagName" in column_indices:
                         disc_sheet.write(excel_row, column_indices["TagName"], hmi_name, standard_style)
                     if "Description" in column_indices:
@@ -256,15 +270,24 @@ class HMIGenerator:
                     if "TagGroup" in column_indices:
                         disc_sheet.write(excel_row, column_indices["TagGroup"], station_name, standard_style)
                     if "ItemName" in column_indices:
-                        # ItemName = 0 + 上位机通讯地址，强制文本格式
-                        item_name_value = str(comm_address).split('.')[0]
-                        item_name = "0" + item_name_value
-                        disc_sheet.write(excel_row, column_indices["ItemName"], item_name, text_style)
+                        # ItemName = 上位机通讯地址前面部分，使用文本格式
+                        try:
+                            item_name_value = str(comm_address).split('.')[0]
+                            # 将通讯地址转换为整数（去掉可能的前导0）并再次转为字符串
+                            item_name_int = int(item_name_value)
+                            disc_sheet.write(excel_row, column_indices["ItemName"], str(item_name_int), text_style)
+                        except (ValueError, TypeError):
+                            # 如果无法转换为整数，则保持原样使用文本格式
+                            disc_sheet.write(excel_row, column_indices["ItemName"], item_name_value, text_style)
                     
                     # 填充固定值字段
                     for field, value in disc_fixed_values.items():
                         if field in column_indices:
-                            disc_sheet.write(excel_row, column_indices[field], value, standard_style)
+                            # 根据字段类型选择样式
+                            if field in number_fields:
+                                disc_sheet.write(excel_row, column_indices[field], value, number_style)
+                            else:
+                                disc_sheet.write(excel_row, column_indices[field], value, standard_style)
                 
                 # 处理布尔类型的扩展点位
                 bool_ext_row_counter = disc_row_start + len(bool_df)  # 从基本点位后开始添加
@@ -313,7 +336,7 @@ class HMIGenerator:
                         bool_ext_id_counter += 1
                         
                         if "TagID" in column_indices:
-                            disc_sheet.write(bool_ext_row_counter, column_indices["TagID"], bool_ext_id_counter, standard_style)
+                            disc_sheet.write(bool_ext_row_counter, column_indices["TagID"], bool_ext_id_counter, number_style)
                         if "TagName" in column_indices:
                             disc_sheet.write(bool_ext_row_counter, column_indices["TagName"], ext_hmi_name, standard_style)
                         if "Description" in column_indices:
@@ -323,15 +346,21 @@ class HMIGenerator:
                         if "TagGroup" in column_indices:
                             disc_sheet.write(bool_ext_row_counter, column_indices["TagGroup"], station_name, standard_style)
                         if "ItemName" in column_indices:
-                            # ItemName = 0 + 上位机通讯地址，强制文本格式
-                            item_name_value = str(point_comm_addr).split('.')[0]
-                            item_name = "0" + item_name_value
-                            disc_sheet.write(bool_ext_row_counter, column_indices["ItemName"], item_name, text_style)
+                            # ItemName = 上位机通讯地址，使用文本格式
+                            try:
+                                item_name_value = str(point_comm_addr).split('.')[0]
+                                item_name_int = int(item_name_value)
+                                disc_sheet.write(bool_ext_row_counter, column_indices["ItemName"], str(item_name_int), text_style)
+                            except (ValueError, TypeError):
+                                disc_sheet.write(bool_ext_row_counter, column_indices["ItemName"], item_name_value, text_style)
                         
                         # 填充固定值字段
                         for field, value in disc_fixed_values.items():
                             if field in column_indices:
-                                disc_sheet.write(bool_ext_row_counter, column_indices[field], value, standard_style)
+                                if field in number_fields:
+                                    disc_sheet.write(bool_ext_row_counter, column_indices[field], value, number_style)
+                                else:
+                                    disc_sheet.write(bool_ext_row_counter, column_indices[field], value, standard_style)
                         
                         # 递增行计数器
                         bool_ext_row_counter += 1
@@ -356,32 +385,35 @@ class HMIGenerator:
                     float_fixed_values = {
                         "TagType": "用户变量",
                         "TagDataType": "IOFloat",
-                        "MaxRawValue": "1000000000.000000",
-                        "MinRawValue": "-1000000000.000000",
-                        "MaxValue": "1000000000.000000",
-                        "MinValue": "-1000000000.000000",
+                        "MaxRawValue": 1000000000.000000,  # 使用数字而非字符串
+                        "MinRawValue": -1000000000.000000,  # 使用数字而非字符串
+                        "MaxValue": 1000000000.000000,  # 使用数字而非字符串
+                        "MinValue": -1000000000.000000,  # 使用数字而非字符串
                         "ConvertType": "无",
                         "IsFilter": "否",
-                        "DeadBand": "0",
+                        "DeadBand": 0,  # 使用数字而非字符串
                         "ChannelName": "Network1",
                         "ChannelDriver": "ModbusMaster",
                         "DeviceSeries": "ModbusTCP",
-                        "DeviceSeriesType": "0",
+                        "DeviceSeriesType": 0,  # 使用数字而非字符串
                         "CollectControl": "否",
-                        "CollectInterval": "1000",
-                        "CollectOffset": "0",
-                        "TimeZoneBias": "0",
-                        "TimeAdjustment": "0",
+                        "CollectInterval": 1000,  # 使用数字而非字符串
+                        "CollectOffset": 0,  # 使用数字而非字符串
+                        "TimeZoneBias": 0,  # 使用数字而非字符串
+                        "TimeAdjustment": 0,  # 使用数字而非字符串
                         "Enable": "是",
                         "ForceWrite": "否",
-                        "RegName": "4",
-                        "RegType": "3",
+                        "RegName": 4,  # 使用数字而非字符串
+                        "RegType": 3,  # 使用数字而非字符串
                         "ItemDataType": "FLOAT",
                         "ItemAccessMode": "读写",
                         "HisRecordMode": "不记录",
-                        "HisDeadBand": "0.000000",
-                        "HisInterval": "60"
+                        "HisDeadBand": 0.000000,  # 使用数字而非字符串
+                        "HisInterval": 60  # 使用数字而非字符串
                     }
+                    
+                    # 浮点数字段列表
+                    float_fields = ["HiHiLimit", "HiLimit", "LoLimit", "LoLoLimit"]
                     
                     # 设置从第二行开始填充数据（表头是第一行）
                     float_row_start = 1
@@ -415,7 +447,7 @@ class HMIGenerator:
                         
                         # 填充数据到Excel - 使用行计数器
                         if "TagID" in float_column_indices:
-                            float_sheet.write(excel_row_counter, float_column_indices["TagID"], current_id, standard_style)
+                            float_sheet.write(excel_row_counter, float_column_indices["TagID"], current_id, number_style)
                         if "TagName" in float_column_indices:
                             float_sheet.write(excel_row_counter, float_column_indices["TagName"], hmi_name, standard_style)
                         if "Description" in float_column_indices:
@@ -425,14 +457,23 @@ class HMIGenerator:
                         if "TagGroup" in float_column_indices:
                             float_sheet.write(excel_row_counter, float_column_indices["TagGroup"], station_name, standard_style)
                         if "ItemName" in float_column_indices:
-                            # 确保值为整数（移除可能的小数点）
-                            item_name_value = str(comm_address).split('.')[0]
-                            float_sheet.write(excel_row_counter, float_column_indices["ItemName"], item_name_value, text_style)
+                            # 确保值为文本格式
+                            try:
+                                item_name_value = str(comm_address).split('.')[0]
+                                item_name_int = int(item_name_value)
+                                float_sheet.write(excel_row_counter, float_column_indices["ItemName"], str(item_name_int), text_style)
+                            except (ValueError, TypeError):
+                                float_sheet.write(excel_row_counter, float_column_indices["ItemName"], item_name_value, text_style)
                         
                         # 填充固定值字段
                         for field, value in float_fixed_values.items():
                             if field in float_column_indices:
-                                float_sheet.write(excel_row_counter, float_column_indices[field], value, standard_style)
+                                if field in float_fields:
+                                    float_sheet.write(excel_row_counter, float_column_indices[field], value, float_style)
+                                elif field in number_fields:
+                                    float_sheet.write(excel_row_counter, float_column_indices[field], value, number_style)
+                                else:
+                                    float_sheet.write(excel_row_counter, float_column_indices[field], value, standard_style)
                         
                         # 递增行计数器
                         excel_row_counter += 1
@@ -484,7 +525,7 @@ class HMIGenerator:
                         real_ext_id_counter += 1
                         
                         if "TagID" in float_column_indices:
-                            float_sheet.write(real_ext_row_counter, float_column_indices["TagID"], real_ext_id_counter, standard_style)
+                            float_sheet.write(real_ext_row_counter, float_column_indices["TagID"], real_ext_id_counter, number_style)
                         if "TagName" in float_column_indices:
                             float_sheet.write(real_ext_row_counter, float_column_indices["TagName"], ext_hmi_name, standard_style)
                         if "Description" in float_column_indices:
@@ -494,14 +535,23 @@ class HMIGenerator:
                         if "TagGroup" in float_column_indices:
                             float_sheet.write(real_ext_row_counter, float_column_indices["TagGroup"], station_name, standard_style)
                         if "ItemName" in float_column_indices:
-                            # 确保值为整数（移除可能的小数点）
-                            item_name_value = str(point_comm_addr).split('.')[0]
-                            float_sheet.write(real_ext_row_counter, float_column_indices["ItemName"], item_name_value, text_style)
+                            # 确保值为文本格式
+                            try:
+                                item_name_value = str(point_comm_addr).split('.')[0]
+                                item_name_int = int(item_name_value)
+                                float_sheet.write(real_ext_row_counter, float_column_indices["ItemName"], str(item_name_int), text_style)
+                            except (ValueError, TypeError):
+                                float_sheet.write(real_ext_row_counter, float_column_indices["ItemName"], item_name_value, text_style)
                         
                         # 填充固定值字段
                         for field, value in float_fixed_values.items():
                             if field in float_column_indices:
-                                float_sheet.write(real_ext_row_counter, float_column_indices[field], value, standard_style)
+                                if field in float_fields:
+                                    float_sheet.write(real_ext_row_counter, float_column_indices[field], value, float_style)
+                                elif field in number_fields:
+                                    float_sheet.write(real_ext_row_counter, float_column_indices[field], value, number_style)
+                                else:
+                                    float_sheet.write(real_ext_row_counter, float_column_indices[field], value, standard_style)
                         
                         # 递增行计数器
                         real_ext_row_counter += 1
@@ -522,7 +572,7 @@ class HMIGenerator:
                 return True
                 
             except Exception as e:
-                error_msg = f"生成HMI点表文件失败: {str(e)}\n{traceback.format_exc()}"
+                error_msg = f"生成HMI REAL点表失败: {str(e)}\n{traceback.format_exc()}"
                 messagebox.showerror("错误", error_msg)
                 
                 if export_window:
@@ -533,7 +583,7 @@ class HMIGenerator:
             if export_window and export_window.winfo_exists():
                 export_window.destroy()
             error_details = traceback.format_exc()
-            messagebox.showerror("错误", f"生成HMI点表时发生错误:\n{str(e)}\n\n详细错误信息:\n{error_details}")
+            messagebox.showerror("错误", f"生成HMI REAL点表时发生错误:\n{str(e)}\n\n详细错误信息:\n{error_details}")
             return False
     
     @staticmethod
@@ -624,6 +674,16 @@ class HMIGenerator:
                 standard_style = xlwt.XFStyle()
                 standard_style.font = font
                 
+                # 设置数字格式样式
+                number_style = xlwt.XFStyle()
+                number_style.font = font
+                number_style.num_format_str = '0'  # 整数格式
+                
+                # 设置浮点数格式样式
+                float_style = xlwt.XFStyle()
+                float_style.font = font
+                float_style.num_format_str = '0.000000'  # 浮点数格式
+                
                 # 首先复制模板中的所有工作表
                 float_sheet_idx = -1
                 
@@ -687,32 +747,39 @@ class HMIGenerator:
                 float_fixed_values = {
                     "TagType": "用户变量",
                     "TagDataType": "IOFloat",
-                    "MaxRawValue": "1000000000.000000",
-                    "MinRawValue": "-1000000000.000000",
-                    "MaxValue": "1000000000.000000",
-                    "MinValue": "-1000000000.000000",
+                    "MaxRawValue": 1000000000.000000,  # 使用数字而非字符串
+                    "MinRawValue": -1000000000.000000,  # 使用数字而非字符串
+                    "MaxValue": 1000000000.000000,  # 使用数字而非字符串
+                    "MinValue": -1000000000.000000,  # 使用数字而非字符串
                     "ConvertType": "无",
                     "IsFilter": "否",
-                    "DeadBand": "0",
+                    "DeadBand": 0,  # 使用数字而非字符串
                     "ChannelName": "Network1",
                     "ChannelDriver": "ModbusMaster",
                     "DeviceSeries": "ModbusTCP",
-                    "DeviceSeriesType": "0",
+                    "DeviceSeriesType": 0,  # 使用数字而非字符串
                     "CollectControl": "否",
-                    "CollectInterval": "1000",
-                    "CollectOffset": "0",
-                    "TimeZoneBias": "0",
-                    "TimeAdjustment": "0",
+                    "CollectInterval": 1000,  # 使用数字而非字符串
+                    "CollectOffset": 0,  # 使用数字而非字符串
+                    "TimeZoneBias": 0,  # 使用数字而非字符串
+                    "TimeAdjustment": 0,  # 使用数字而非字符串
                     "Enable": "是",
                     "ForceWrite": "否",
-                    "RegName": "4",
-                    "RegType": "3",
+                    "RegName": 4,  # 使用数字而非字符串
+                    "RegType": 3,  # 使用数字而非字符串
                     "ItemDataType": "FLOAT",
                     "ItemAccessMode": "读写",
                     "HisRecordMode": "不记录",
-                    "HisDeadBand": "0.000000",
-                    "HisInterval": "60"
+                    "HisDeadBand": 0.000000,  # 使用数字而非字符串
+                    "HisInterval": 60  # 使用数字而非字符串
                 }
+                
+                # 数字字段列表
+                number_fields = ["TagID", "CollectInterval", "CollectOffset", "TimeZoneBias", "TimeAdjustment", 
+                                "RegName", "RegType", "DeviceSeriesType", "HisInterval"]
+                
+                # 浮点数字段列表
+                float_fields = ["HiHiLimit", "HiLimit", "LoLimit", "LoLoLimit"]
                 
                 # 设置从第二行开始填充数据（表头是第一行）
                 float_row_start = 1
@@ -743,7 +810,7 @@ class HMIGenerator:
                     
                     # 填充数据到Excel - 使用行计数器
                     if "TagID" in column_indices:
-                        float_sheet.write(excel_row_counter, column_indices["TagID"], current_id, standard_style)
+                        float_sheet.write(excel_row_counter, column_indices["TagID"], current_id, number_style)
                     if "TagName" in column_indices:
                         float_sheet.write(excel_row_counter, column_indices["TagName"], hmi_name, standard_style)
                     if "Description" in column_indices:
@@ -753,16 +820,25 @@ class HMIGenerator:
                     if "TagGroup" in column_indices:
                         float_sheet.write(excel_row_counter, column_indices["TagGroup"], station_name, standard_style)
                     if "ItemName" in column_indices:
-                        # 确保值为整数（移除可能的小数点）
-                        item_name_value = str(comm_address).split('.')[0]
-                        float_sheet.write(excel_row_counter, column_indices["ItemName"], item_name_value, text_style)
+                        # 确保值为文本格式
+                        try:
+                            item_name_value = str(comm_address).split('.')[0]
+                            item_name_int = int(item_name_value)
+                            float_sheet.write(excel_row_counter, column_indices["ItemName"], str(item_name_int), text_style)
+                        except (ValueError, TypeError):
+                            float_sheet.write(excel_row_counter, column_indices["ItemName"], item_name_value, text_style)
                     
                     # 填充固定值字段
                     for field, value in float_fixed_values.items():
                         if field in column_indices:
-                            float_sheet.write(excel_row_counter, column_indices[field], value, standard_style)
+                            if field in float_fields:
+                                float_sheet.write(excel_row_counter, column_indices[field], value, float_style)
+                            elif field in number_fields:
+                                float_sheet.write(excel_row_counter, column_indices[field], value, number_style)
+                            else:
+                                float_sheet.write(excel_row_counter, column_indices[field], value, standard_style)
                     
-                    # 增加行计数器
+                    # 递增行计数器
                     excel_row_counter += 1
                 
                 # 处理REAL类型的扩展点位
@@ -808,7 +884,7 @@ class HMIGenerator:
                         current_id_counter += 1
                         
                         if "TagID" in column_indices:
-                            float_sheet.write(excel_row_counter, column_indices["TagID"], current_id_counter, standard_style)
+                            float_sheet.write(excel_row_counter, column_indices["TagID"], current_id, number_style)
                         if "TagName" in column_indices:
                             float_sheet.write(excel_row_counter, column_indices["TagName"], ext_hmi_name, standard_style)
                         if "Description" in column_indices:
@@ -818,14 +894,23 @@ class HMIGenerator:
                         if "TagGroup" in column_indices:
                             float_sheet.write(excel_row_counter, column_indices["TagGroup"], station_name, standard_style)
                         if "ItemName" in column_indices:
-                            # 确保值为整数（移除可能的小数点）
-                            item_name_value = str(point_comm_addr).split('.')[0]
-                            float_sheet.write(excel_row_counter, column_indices["ItemName"], item_name_value, text_style)
+                            # 确保值为文本格式
+                            try:
+                                item_name_value = str(point_comm_addr).split('.')[0]
+                                item_name_int = int(item_name_value)
+                                float_sheet.write(excel_row_counter, column_indices["ItemName"], str(item_name_int), text_style)
+                            except (ValueError, TypeError):
+                                float_sheet.write(excel_row_counter, column_indices["ItemName"], item_name_value, text_style)
                         
                         # 填充固定值字段
                         for field, value in float_fixed_values.items():
                             if field in column_indices:
-                                float_sheet.write(excel_row_counter, column_indices[field], value, standard_style)
+                                if field in float_fields:
+                                    float_sheet.write(excel_row_counter, column_indices[field], value, float_style)
+                                elif field in number_fields:
+                                    float_sheet.write(excel_row_counter, column_indices[field], value, number_style)
+                                else:
+                                    float_sheet.write(excel_row_counter, column_indices[field], value, standard_style)
                         
                         # 递增行计数器
                         excel_row_counter += 1
@@ -942,6 +1027,16 @@ class HMIGenerator:
                 standard_style = xlwt.XFStyle()
                 standard_style.font = font
                 
+                # 设置数字格式样式
+                number_style = xlwt.XFStyle()
+                number_style.font = font
+                number_style.num_format_str = '0'  # 整数格式
+                
+                # 设置浮点数格式样式
+                float_style = xlwt.XFStyle()
+                float_style.font = font
+                float_style.num_format_str = '0.000000'  # 浮点数格式
+                
                 # 首先复制模板中的所有工作表
                 disc_sheet_idx = -1
                 float_sheet_idx = -1
@@ -995,9 +1090,9 @@ class HMIGenerator:
                     if header:
                         float_column_indices[header] = col
                 
-                # 设置IO_DISC工作簿的固定值
+                # 设置IO_DISC工作簿的固定值 - 改为使用数字而非字符串
                 disc_fixed_values = {
-                    "ContainerType": "1",
+                    "ContainerType": 1,  # 改为数字
                     "InitialValueBool": "false",
                     "SecurityZoneID": "None",
                     "RecordEvent": "false",
@@ -1006,12 +1101,12 @@ class HMIGenerator:
                     "AccessByOtherApplication": "false",
                     "ExtentField1": "",
                     "ExtentField2": "",
-                    "HisRecMode": "2",
-                    "HisRecInterval": "60",
-                    "AlarmType": "256",
+                    "HisRecMode": 2,  # 改为数字
+                    "HisRecInterval": 60,  # 改为数字
+                    "AlarmType": 256,  # 改为数字
                     "CloseString": "关闭",
                     "OpenString": "打开",
-                    "AlarmDelay": "0",
+                    "AlarmDelay": 0,  # 改为数字
                     "DiscInhibitor": "",
                     "ExtentField3": "",
                     "ExtentField4": "",
@@ -1026,16 +1121,16 @@ class HMIGenerator:
                     "IOEnable": "true",
                     "ForceRead": "false",
                     "ForceWrite": "false",
-                    "DataConvertMode": "1"
+                    "DataConvertMode": 1  # 改为数字
                 }
                 
-                # 设置IO_FLOAT工作簿的固定值
+                # 设置IO_FLOAT工作簿的固定值 - 改为使用数字而非字符串
                 float_fixed_values = {
-                    "ContainerType": "1",
-                    "MaxValue": "1000000000",
-                    "MinValue": "-1000000000",
-                    "InitialValue": "0",
-                    "Sensitivity": "0",
+                    "ContainerType": 1,  # 改为数字
+                    "MaxValue": 1000000000,  # 改为数字
+                    "MinValue": -1000000000,  # 改为数字
+                    "InitialValue": 0,  # 改为数字
+                    "Sensitivity": 0,  # 改为数字
                     "EngineerUnits": "",
                     "SecurityZoneID": "None",
                     "RecordEvent": "false",
@@ -1044,44 +1139,44 @@ class HMIGenerator:
                     "AccessByOtherApplication": "false",
                     "ExtentField1": "",
                     "ExtentField2": "",
-                    "HisRecMode": "2",
-                    "HisRecChangeDeadband": "0",
-                    "HisRecInterval": "60",
+                    "HisRecMode": 2,  # 改为数字
+                    "HisRecChangeDeadband": 0,  # 改为数字
+                    "HisRecInterval": 60,  # 改为数字
                     "HiHiText": "高高",
-                    "HiHiPriority": "1",
+                    "HiHiPriority": 1,  # 改为数字
                     "HiHiInhibitor": "",
                     "HiText": "高",
-                    "HiPriority": "1",
+                    "HiPriority": 1,  # 改为数字
                     "HiInhibitor": "",
                     "LoText": "低",
-                    "LoPriority": "1",
+                    "LoPriority": 1,  # 改为数字
                     "LoInhibitor": "",
                     "LoLoText": "低低",
-                    "LoLoPriority": "1",
+                    "LoLoPriority": 1,  # 改为数字
                     "LoLoInhibitor": "",
-                    "LimitDeadband": "0",
-                    "LimitDelay": "0",
+                    "LimitDeadband": 0,  # 改为数字
+                    "LimitDelay": 0,  # 改为数字
                     "DevMajorEnabled": "false",
-                    "DevMajorLimit": "80",
+                    "DevMajorLimit": 80,  # 改为数字
                     "DevMajorText": "主要",
-                    "DevMajorPriority": "1",
+                    "DevMajorPriority": 1,  # 改为数字
                     "MajorInhibitor": "",
                     "DevMinorEnabled": "false",
-                    "DevMinorLimit": "20",
+                    "DevMinorLimit": 20,  # 改为数字
                     "DevMinorText": "次要",
-                    "DevMinorPriority": "1",
+                    "DevMinorPriority": 1,  # 改为数字
                     "MinorInhibitor": "",
-                    "DevDeadband": "0",
-                    "DevTargetValue": "100",
-                    "DevDelay": "0",
+                    "DevDeadband": 0,  # 改为数字
+                    "DevTargetValue": 100,  # 改为数字
+                    "DevDelay": 0,  # 改为数字
                     "RocEnabled": "false",
-                    "RocPercent": "20",
-                    "RocTimeUnit": "0",
+                    "RocPercent": 20,  # 改为数字
+                    "RocTimeUnit": 0,  # 改为数字
                     "RocText": "变化率",
-                    "RocDelay": "0",
-                    "RocPriority": "1",
+                    "RocDelay": 0,  # 改为数字
+                    "RocPriority": 1,  # 改为数字
                     "RocInhibitor": "",
-                    "StatusAlarmTableID": "0",
+                    "StatusAlarmTableID": 0,  # 改为数字
                     "StatusAlarmEnabled": "false",
                     "StatusAlarmTableName": "",
                     "StatusInhibitor": "",
@@ -1094,16 +1189,29 @@ class HMIGenerator:
                     "ExtentField8": "",
                     "StateEnumTable": "",
                     "IOConfigControl": "true",
-                    "MaxRaw": "1000000000",
-                    "MinRaw": "-1000000000",
+                    "MaxRaw": 1000000000,  # 改为数字
+                    "MinRaw": -1000000000,  # 改为数字
                     "IOEnable": "true",
                     "ForceRead": "false",
                     "ForceWrite": "false",
-                    "DataConvertMode": "1",
-                    "NlnTableID": "0",
-                    "AddupMaxVal": "0",
-                    "AddupMinVal": "0"
+                    "DataConvertMode": 1,  # 改为数字
+                    "NlnTableID": 0,  # 改为数字
+                    "AddupMaxVal": 0,  # 改为数字
+                    "AddupMinVal": 0  # 改为数字
                 }
+                
+                # 数值型字段列表 - 用于判断应使用哪种样式
+                number_fields = ["TagID", "ContainerType", "HisRecMode", "HisRecInterval", "AlarmType", 
+                                "AlarmDelay", "DataConvertMode", "MaxValue", "MinValue", "InitialValue", 
+                                "Sensitivity", "HisRecChangeDeadband", "HiHiPriority", "HiPriority", 
+                                "LoPriority", "LoLoPriority", "LimitDeadband", "LimitDelay", "DevMajorLimit",
+                                "DevMajorPriority", "DevMinorLimit", "DevMinorPriority", "DevDeadband", 
+                                "DevTargetValue", "DevDelay", "RocPercent", "RocTimeUnit", "RocDelay", 
+                                "RocPriority", "StatusAlarmTableID", "MaxRaw", "MinRaw", "NlnTableID", 
+                                "AddupMaxVal", "AddupMinVal"]
+                
+                # 浮点数字段
+                float_fields = ["HiHiLimit", "HiLimit", "LoLimit", "LoLoLimit"]
                 
                 # 设置从第二行开始填充数据（表头是第一行）
                 disc_row_start = 1
@@ -1114,7 +1222,7 @@ class HMIGenerator:
                     hmi_name = row.get("变量名称（HMI）", "")
                     description = row.get("变量描述", "")
                     station_name = row.get("场站名", "未知站点")
-                    alarm_priority = row.get("报警等级", "1")  # 获取报警等级，默认为1
+                    alarm_priority = row.get("报警等级", 1)  # 默认为1，确保为数字
                     
                     # 如果变量名为空，则自动补全
                     if pd.isna(hmi_name) or str(hmi_name).strip() == "":
@@ -1124,20 +1232,26 @@ class HMIGenerator:
                     
                     # 如果报警等级为空，则设为默认值1
                     if pd.isna(alarm_priority) or str(alarm_priority).strip() == "":
-                        alarm_priority = "1"
+                        alarm_priority = 1
+                    else:
+                        # 尝试将报警等级转换为数字
+                        try:
+                            alarm_priority = int(alarm_priority)
+                        except (ValueError, TypeError):
+                            alarm_priority = 1
                     
                     # 当前行索引
                     excel_row = disc_row_start + i
                     
                     # 填充必要的字段
                     if "TagID" in disc_column_indices:
-                        disc_sheet.write(excel_row, disc_column_indices["TagID"], excel_row, standard_style)
+                        disc_sheet.write(excel_row, disc_column_indices["TagID"], excel_row, number_style)
                     if "TagName" in disc_column_indices:
                         disc_sheet.write(excel_row, disc_column_indices["TagName"], hmi_name, standard_style)
                     if "Description" in disc_column_indices:
                         disc_sheet.write(excel_row, disc_column_indices["Description"], description, standard_style)
                     if "AlarmPriority" in disc_column_indices:
-                        disc_sheet.write(excel_row, disc_column_indices["AlarmPriority"], alarm_priority, standard_style)
+                        disc_sheet.write(excel_row, disc_column_indices["AlarmPriority"], alarm_priority, number_style)
                     if "AlarmGroup" in disc_column_indices:
                         disc_sheet.write(excel_row, disc_column_indices["AlarmGroup"], station_name, standard_style)
                     if "IOAccess" in disc_column_indices:
@@ -1147,7 +1261,10 @@ class HMIGenerator:
                     # 填充固定值字段
                     for field, value in disc_fixed_values.items():
                         if field in disc_column_indices:
-                            disc_sheet.write(excel_row, disc_column_indices[field], value, standard_style)
+                            if field in number_fields:
+                                disc_sheet.write(excel_row, disc_column_indices[field], value, number_style)
+                            else:
+                                disc_sheet.write(excel_row, disc_column_indices[field], value, standard_style)
                 
                 # 确定REAL数据的起始ID
                 float_start_id = disc_row_start + len(bool_df)
@@ -1182,7 +1299,7 @@ class HMIGenerator:
                     
                     # 填充必要的字段
                     if "TagID" in float_column_indices:
-                        float_sheet.write(excel_row, float_column_indices["TagID"], current_id, standard_style)
+                        float_sheet.write(excel_row, float_column_indices["TagID"], current_id, number_style)
                     if "TagName" in float_column_indices:
                         float_sheet.write(excel_row, float_column_indices["TagName"], hmi_name, standard_style)
                     if "Description" in float_column_indices:
@@ -1195,27 +1312,52 @@ class HMIGenerator:
                     if "HiHiEnabled" in float_column_indices:
                         float_sheet.write(excel_row, float_column_indices["HiHiEnabled"], hihi_enabled, standard_style)
                     if "HiHiLimit" in float_column_indices and not pd.isna(shh_value) and shh_value and shh_value != "/":
-                        float_sheet.write(excel_row, float_column_indices["HiHiLimit"], shh_value, standard_style)
+                        # 尝试将限值转换为浮点数
+                        try:
+                            shh_float = float(shh_value)
+                            float_sheet.write(excel_row, float_column_indices["HiHiLimit"], shh_float, float_style)
+                        except (ValueError, TypeError):
+                            float_sheet.write(excel_row, float_column_indices["HiHiLimit"], shh_value, standard_style)
                     
                     if "HiEnabled" in float_column_indices:
                         float_sheet.write(excel_row, float_column_indices["HiEnabled"], hi_enabled, standard_style)
                     if "HiLimit" in float_column_indices and not pd.isna(sh_value) and sh_value and sh_value != "/":
-                        float_sheet.write(excel_row, float_column_indices["HiLimit"], sh_value, standard_style)
+                        # 尝试将限值转换为浮点数
+                        try:
+                            sh_float = float(sh_value)
+                            float_sheet.write(excel_row, float_column_indices["HiLimit"], sh_float, float_style)
+                        except (ValueError, TypeError):
+                            float_sheet.write(excel_row, float_column_indices["HiLimit"], sh_value, standard_style)
                     
                     if "LoEnabled" in float_column_indices:
                         float_sheet.write(excel_row, float_column_indices["LoEnabled"], lo_enabled, standard_style)
                     if "LoLimit" in float_column_indices and not pd.isna(sl_value) and sl_value and sl_value != "/":
-                        float_sheet.write(excel_row, float_column_indices["LoLimit"], sl_value, standard_style)
+                        # 尝试将限值转换为浮点数
+                        try:
+                            sl_float = float(sl_value)
+                            float_sheet.write(excel_row, float_column_indices["LoLimit"], sl_float, float_style)
+                        except (ValueError, TypeError):
+                            float_sheet.write(excel_row, float_column_indices["LoLimit"], sl_value, standard_style)
                     
                     if "LoLoEnabled" in float_column_indices:
                         float_sheet.write(excel_row, float_column_indices["LoLoEnabled"], lolo_enabled, standard_style)
                     if "LoLoLimit" in float_column_indices and not pd.isna(sll_value) and sll_value and sll_value != "/":
-                        float_sheet.write(excel_row, float_column_indices["LoLoLimit"], sll_value, standard_style)
+                        # 尝试将限值转换为浮点数
+                        try:
+                            sll_float = float(sll_value)
+                            float_sheet.write(excel_row, float_column_indices["LoLoLimit"], sll_float, float_style)
+                        except (ValueError, TypeError):
+                            float_sheet.write(excel_row, float_column_indices["LoLoLimit"], sll_value, standard_style)
                     
                     # 填充固定值字段
                     for field, value in float_fixed_values.items():
                         if field in float_column_indices:
-                            float_sheet.write(excel_row, float_column_indices[field], value, standard_style)
+                            if field in float_fields:
+                                float_sheet.write(excel_row, float_column_indices[field], value, float_style)
+                            elif field in number_fields:
+                                float_sheet.write(excel_row, float_column_indices[field], value, number_style)
+                            else:
+                                float_sheet.write(excel_row, float_column_indices[field], value, standard_style)
                 
                 # 保存工作簿
                 workbook.save(xls_output_path)
@@ -1231,7 +1373,7 @@ class HMIGenerator:
                 return True
                 
             except Exception as e:
-                error_msg = f"生成数据词典点表文件失败: {str(e)}\n{traceback.format_exc()}"
+                error_msg = f"生成数据词典点表失败: {str(e)}\n{traceback.format_exc()}"
                 messagebox.showerror("错误", error_msg)
                 
                 if export_window:
