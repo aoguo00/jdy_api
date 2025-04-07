@@ -85,6 +85,7 @@ class PLCGenerator:
             defaults["初始值"] = "FALSE"
         else:  # REAL或其他类型
             defaults["初始值"] = "0"
+            defaults["掉电保护"] = "TRUE"  # REAL类型数据的掉电保护设置为TRUE
             
         return defaults
     
