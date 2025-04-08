@@ -65,9 +65,11 @@ class DetailWindow(QDialog):
         main_layout = QVBoxLayout(self)
         
         # 标题字体
-        title_font = QFont("Microsoft YaHei", 16)
+        title_font = QFont()  # 使用系统默认字体
+        title_font.setPointSize(16)
         title_font.setBold(True)
-        header_font = QFont("Microsoft YaHei", 11)
+        header_font = QFont()  # 使用系统默认字体
+        header_font.setPointSize(11)
         header_font.setBold(True)
         
         # 信息面板 - 显示场站基本信息
@@ -221,9 +223,11 @@ class ProjectQueryApp(QMainWindow):
         self.setMinimumSize(900, 600)
         
         # 设置标题字体
-        title_font = QFont("Microsoft YaHei", 16)
+        title_font = QFont()  # 使用系统默认字体
+        title_font.setPointSize(16)
         title_font.setBold(True)
-        header_font = QFont("Microsoft YaHei", 11)
+        header_font = QFont()  # 使用系统默认字体
+        header_font.setPointSize(11)
         header_font.setBold(True)
         
         # 创建中央部件和主布局
@@ -231,13 +235,6 @@ class ProjectQueryApp(QMainWindow):
         self.setCentralWidget(central_widget)
         self.main_layout = QVBoxLayout(central_widget)
         self.main_layout.setContentsMargins(10, 10, 10, 10)
-        
-        # 创建顶部标题
-        title_label = QLabel("深化设计数据查询")
-        title_label.setFont(title_font)
-        title_label.setAlignment(Qt.AlignCenter)
-        self.main_layout.addWidget(title_label)
-        self.main_layout.addSpacing(10)
         
         # 创建查询框架
         query_group = QGroupBox("查询条件")
@@ -252,7 +249,9 @@ class ProjectQueryApp(QMainWindow):
         input_layout.addWidget(proj_label)
         
         self.project_input = QLineEdit()
-        self.project_input.setFont(QFont("Microsoft YaHei", 11))
+        default_font = QFont()
+        default_font.setPointSize(11)
+        self.project_input.setFont(default_font)
         self.project_input.setText("OPP.25011100829")  # 默认值
         input_layout.addWidget(self.project_input)
         input_layout.setStretch(1, 1)  # 输入框占据更多空间

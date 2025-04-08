@@ -85,6 +85,18 @@ class FATGenerator:
                 # 获取需要高亮的字段列表（需要填写"/"的字段）
                 highlight_fields = IOChannelModels.get_highlight_fields()
                 
+                # 先将所有将要填入字符串值的列转换为object/string类型
+                if "变量名称（HMI）" in fat_data.columns:
+                    fat_data["变量名称（HMI）"] = fat_data["变量名称（HMI）"].astype(object)
+                
+                if "变量描述" in fat_data.columns:
+                    fat_data["变量描述"] = fat_data["变量描述"].astype(object)
+                
+                # 将所有需要填"/"的字段也转换为字符串类型
+                for field in highlight_fields:
+                    if field in fat_data.columns:
+                        fat_data[field] = fat_data[field].astype(object)
+                
                 # 更新进度
                 if export_window:
                     export_window.setLabelText("正在补全数据...")
@@ -115,6 +127,7 @@ class FATGenerator:
                         if field in fat_data.columns:
                             current_value = row.get(field, "")
                             if pd.isna(current_value) or str(current_value).strip() == "":
+                                # 直接赋值，前面已经将列转换为对象类型
                                 fat_data.at[idx, field] = "/"
                 
                 # 更新进度
