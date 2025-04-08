@@ -12,8 +12,10 @@ import requests
 import json
 import uuid
 import os
-from tkinter import messagebox
 import traceback
+
+# 导入PySide6
+from PySide6.QtWidgets import QMessageBox
 
 # 导入API配置
 from config.api_config import (
@@ -31,6 +33,24 @@ BASE_URL = API_V5_BASE_URL
 # 表单字段
 upload_widget = get_field_id("文件上传", "文件目录", "上传字段")
 file_type_widget = get_field_id("文件上传", "文件目录", "文件类型")
+
+
+def show_message(parent, message_type, title, message):
+    """
+    显示消息框，使用PySide6
+    
+    参数:
+        parent: 父窗口
+        message_type: 消息类型 ("info", "warning", "error")
+        title: 标题
+        message: 消息内容
+    """
+    if message_type == "info":
+        QMessageBox.information(parent, title, message)
+    elif message_type == "warning":
+        QMessageBox.warning(parent, title, message)
+    elif message_type == "error":
+        QMessageBox.critical(parent, title, message)
 
 
 def upload_file(file_path, file_type="其他"):
@@ -146,7 +166,7 @@ def upload_hmi_table(io_data, root_window=None):
     
     参数:
         io_data (pandas.DataFrame): IO数据
-        root_window (tk.Tk): 主窗口对象，用于创建进度窗口
+        root_window: 主窗口对象，用于创建进度窗口
         
     返回:
         bool: 上传成功返回True，失败返回False
@@ -155,6 +175,7 @@ def upload_hmi_table(io_data, root_window=None):
         # 导入HMI生成器
         from hmi_generator import HMIGenerator
         import tempfile
+        import os
         
         # 创建临时文件
         temp_dir = tempfile.gettempdir()
@@ -179,7 +200,7 @@ def upload_hmi_table(io_data, root_window=None):
         )
         
         if not dict_success:
-            messagebox.showwarning("警告", "HMI点表生成成功，但数据词典点表生成失败。")
+            show_message(root_window, "warning", "警告", "HMI点表生成成功，但数据词典点表生成失败。")
         
         # 上传HMI点表到简道云
         hmi_upload_success = upload_file(temp_hmi_file_path, "HMI点表")
@@ -189,23 +210,32 @@ def upload_hmi_table(io_data, root_window=None):
         if dict_success:
             dict_upload_success = upload_file(temp_dict_file_path, "数据词典点表")
         
+        # 上传完成后，尝试删除临时文件
+        try:
+            if os.path.exists(temp_hmi_file_path):
+                os.remove(temp_hmi_file_path)
+            if dict_success and os.path.exists(temp_dict_file_path):
+                os.remove(temp_dict_file_path)
+        except Exception as e:
+            print(f"删除临时文件失败: {str(e)}")
+        
         # 根据上传结果显示不同的提示信息
         if hmi_upload_success and dict_upload_success:
-            messagebox.showinfo("成功", "HMI点表和数据词典点表已成功生成并上传到简道云!")
+            show_message(root_window, "info", "成功", "HMI点表和数据词典点表已成功生成并上传到简道云!")
             return True
         elif hmi_upload_success and not dict_upload_success and dict_success:
-            messagebox.showinfo("部分成功", "HMI点表已成功上传，但数据词典点表上传失败。")
+            show_message(root_window, "info", "部分成功", "HMI点表已成功上传，但数据词典点表上传失败。")
             return True
         elif hmi_upload_success and not dict_success:
-            messagebox.showinfo("部分成功", "HMI点表已成功上传，但数据词典点表生成失败。")
+            show_message(root_window, "info", "部分成功", "HMI点表已成功上传，但数据词典点表生成失败。")
             return True
         else:
-            messagebox.showerror("错误", "上传HMI点表到简道云失败!")
+            show_message(root_window, "error", "错误", "上传HMI点表到简道云失败!")
             return False
             
     except Exception as e:
         error_details = traceback.format_exc()
-        messagebox.showerror("错误", f"生成或上传HMI点表时发生错误:\n{str(e)}\n\n详细错误信息:\n{error_details}")
+        show_message(root_window, "error", "错误", f"生成或上传HMI点表时发生错误:\n{str(e)}\n\n详细错误信息:\n{error_details}")
         return False
 
 
@@ -215,7 +245,7 @@ def upload_plc_table(io_data, root_window=None):
     
     参数:
         io_data (pandas.DataFrame): IO数据
-        root_window (tk.Tk): 主窗口对象，用于创建进度窗口
+        root_window: 主窗口对象，用于创建进度窗口
         
     返回:
         bool: 上传成功返回True，失败返回False
@@ -224,16 +254,30 @@ def upload_plc_table(io_data, root_window=None):
         # 导入PLC生成器
         from plc_generator import PLCGenerator
         import tempfile
+        import os
         
-        # 创建临时文件
-        temp_dir = tempfile.gettempdir()
-        temp_file_path = os.path.join(temp_dir, "PLC点表.xls")
+        # 创建PLC生成器实例
+        plc_generator = PLCGenerator()
+        
+        # 设置上传的IO数据
+        plc_generator.set_uploaded_io_data(io_data)
+        
+        # 从根窗口获取设备数据、场站名称和项目编号
+        equipment_data = root_window.controller.current_equipment_data if root_window and hasattr(root_window, 'controller') else []
+        station_name = "未知场站"  # 默认场站名称
+        project_number = "未知项目"  # 默认项目编号
+        
+        # 如果有设备数据，则取第一条记录中的场站和项目信息
+        if equipment_data and len(equipment_data) > 0:
+            station_name = equipment_data[0].get("_station", "未知场站")
+            project_number = equipment_data[0].get("_project", "未知项目")
         
         # 调用PLC生成器生成点表
-        success = PLCGenerator.generate_plc_table(
-            io_data=io_data,
-            output_path=temp_file_path,
-            root_window=root_window
+        success, message, temp_file_path = plc_generator.generate_plc_table(
+            equipment_data=equipment_data,
+            station_name=station_name,
+            project_number=project_number,
+            parent_window=root_window
         )
         
         if not success:
@@ -242,16 +286,23 @@ def upload_plc_table(io_data, root_window=None):
         # 上传到简道云
         upload_success = upload_file(temp_file_path, "PLC点表")
         
+        # 上传完成后，尝试删除临时文件
+        try:
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
+        except Exception as e:
+            print(f"删除临时文件失败: {str(e)}")
+        
         if upload_success:
-            messagebox.showinfo("成功", "PLC点表已成功生成并上传到简道云!")
+            show_message(root_window, "info", "成功", "PLC点表已成功生成并上传到简道云!")
             return True
         else:
-            messagebox.showerror("错误", "上传PLC点表到简道云失败!")
+            show_message(root_window, "error", "错误", "上传PLC点表到简道云失败!")
             return False
             
     except Exception as e:
         error_details = traceback.format_exc()
-        messagebox.showerror("错误", f"生成或上传PLC点表时发生错误:\n{str(e)}\n\n详细错误信息:\n{error_details}")
+        show_message(root_window, "error", "错误", f"生成或上传PLC点表时发生错误:\n{str(e)}\n\n详细错误信息:\n{error_details}")
         return False
 
 
@@ -261,7 +312,7 @@ def upload_fat_table(io_data, root_window=None):
     
     参数:
         io_data (pandas.DataFrame): IO数据
-        root_window (tk.Tk): 主窗口对象，用于创建进度窗口
+        root_window: 主窗口对象，用于创建进度窗口
         
     返回:
         bool: 上传成功返回True，失败返回False
@@ -270,6 +321,7 @@ def upload_fat_table(io_data, root_window=None):
         # 导入FAT生成器
         from FAT_generator import FATGenerator
         import tempfile
+        import os
         
         # 创建临时文件
         temp_dir = tempfile.gettempdir()
@@ -288,14 +340,21 @@ def upload_fat_table(io_data, root_window=None):
         # 上传到简道云
         upload_success = upload_file(temp_file_path, "FAT点表")
         
+        # 上传完成后，尝试删除临时文件
+        try:
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
+        except Exception as e:
+            print(f"删除临时文件失败: {str(e)}")
+        
         if upload_success:
-            messagebox.showinfo("成功", "FAT点表已成功生成并上传到简道云!")
+            show_message(root_window, "info", "成功", "FAT点表已成功生成并上传到简道云!")
             return True
         else:
-            messagebox.showerror("错误", "上传FAT点表到简道云失败!")
+            show_message(root_window, "error", "错误", "上传FAT点表到简道云失败!")
             return False
             
     except Exception as e:
         error_details = traceback.format_exc()
-        messagebox.showerror("错误", f"生成或上传FAT点表时发生错误:\n{str(e)}\n\n详细错误信息:\n{error_details}")
+        show_message(root_window, "error", "错误", f"生成或上传FAT点表时发生错误:\n{str(e)}\n\n详细错误信息:\n{error_details}")
         return False 

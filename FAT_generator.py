@@ -12,7 +12,9 @@ FAT点表生成模块 - 用于生成FAT点表
 import os
 import pandas as pd
 import traceback
-from tkinter import messagebox, Toplevel, ttk
+# 将tkinter导入替换为PySide6导入
+from PySide6.QtWidgets import QProgressDialog, QMessageBox
+from PySide6.QtCore import Qt
 from pathlib import Path
 import tempfile
 from io_generator import IOChannelModels
@@ -49,35 +51,27 @@ class FATGenerator:
             # 显示导出进度窗口
             export_window = None
             if root_window:
-                export_window = Toplevel(root_window)
-                export_window.title("正在导出FAT点表")
-                export_window.geometry("300x100")
-                export_window.transient(root_window)
-                export_window.grab_set()
-                
-                # 设置窗口在主窗口中央显示
-                export_window.withdraw()  # 先隐藏窗口
-                export_window.update()    # 更新窗口信息
-                
-                # 计算窗口位置
-                x = root_window.winfo_x() + (root_window.winfo_width() - 300) // 2
-                y = root_window.winfo_y() + (root_window.winfo_height() - 100) // 2
-                export_window.geometry(f"300x100+{x}+{y}")
-                
-                export_window.deiconify()  # 显示窗口
-                
-                export_label = ttk.Label(export_window, text="正在生成FAT点表，请稍候...", font=("Microsoft YaHei", 10))
-                export_label.pack(pady=20)
-                export_window.update()
+                # 使用PySide6的QProgressDialog替代Toplevel
+                export_window = QProgressDialog("正在生成FAT点表，请稍候...", "取消", 0, 100, root_window)
+                export_window.setWindowTitle("正在导出FAT点表")
+                export_window.setWindowModality(Qt.WindowModal)
+                export_window.setMinimumDuration(0)
+                export_window.setValue(0)
+                export_window.show()
             
             # 检查是否有上传数据
             if len(io_data) == 0:
                 if export_window:
-                    export_window.destroy()
-                messagebox.showwarning("警告", "上传的IO点表中没有数据！")
+                    export_window.close()
+                QMessageBox.warning(root_window, "警告", "上传的IO点表中没有数据！")
                 return False
             
             try:
+                # 更新进度
+                if export_window:
+                    export_window.setLabelText("正在处理数据...")
+                    export_window.setValue(10)
+                
                 # 确保输出路径是xls格式
                 xls_output_path = str(Path(output_path).with_suffix('.xls'))
                 
@@ -90,6 +84,11 @@ class FATGenerator:
                 
                 # 获取需要高亮的字段列表（需要填写"/"的字段）
                 highlight_fields = IOChannelModels.get_highlight_fields()
+                
+                # 更新进度
+                if export_window:
+                    export_window.setLabelText("正在补全数据...")
+                    export_window.setValue(30)
                 
                 # 第一步：处理变量名称为空的情况，补全变量名称和变量描述
                 for idx, row in fat_data.iterrows():
@@ -105,6 +104,11 @@ class FATGenerator:
                         # 自动补全变量描述（无论原来是否为空）
                         fat_data.at[idx, "变量描述"] = f"预留点位{channel_code}"
                 
+                # 更新进度
+                if export_window:
+                    export_window.setLabelText("正在填充默认值...")
+                    export_window.setValue(50)
+                
                 # 第二步：处理所有标黄的空单元格，填写为"/"
                 for idx, row in fat_data.iterrows():
                     for field in highlight_fields:
@@ -112,6 +116,11 @@ class FATGenerator:
                             current_value = row.get(field, "")
                             if pd.isna(current_value) or str(current_value).strip() == "":
                                 fat_data.at[idx, field] = "/"
+                
+                # 更新进度
+                if export_window:
+                    export_window.setLabelText("正在创建Excel文件...")
+                    export_window.setValue(70)
                 
                 # 创建新的Excel工作簿
                 workbook = xlwt.Workbook(encoding='utf-8')
@@ -130,8 +139,20 @@ class FATGenerator:
                 for col_idx, col_name in enumerate(fat_data.columns):
                     worksheet.write(0, col_idx, col_name, common_style)
                 
+                # 更新进度
+                if export_window:
+                    export_window.setLabelText("正在写入数据...")
+                    export_window.setValue(80)
+                
                 # 写入数据
+                total_rows = len(fat_data)
                 for row_idx, (_, row) in enumerate(fat_data.iterrows(), 1):
+                    # 周期性更新进度
+                    if export_window and row_idx % 10 == 0:  # 每10行更新一次进度
+                        progress = 80 + int((row_idx / total_rows) * 15)  # 从80%到95%的进度
+                        export_window.setValue(progress)
+                        export_window.setLabelText(f"正在写入数据... ({row_idx}/{total_rows})")
+                    
                     for col_idx, col_name in enumerate(fat_data.columns):
                         value = row.get(col_name, "")
                         # 处理空值
@@ -142,6 +163,11 @@ class FATGenerator:
                 # 保存工作簿
                 workbook.save(xls_output_path)
                 
+                # 更新进度
+                if export_window:
+                    export_window.setLabelText("正在完成操作...")
+                    export_window.setValue(95)
+                
                 # 检查文件是否生成成功
                 if os.path.exists(xls_output_path) and os.path.getsize(xls_output_path) > 0:
                     result = True
@@ -150,21 +176,21 @@ class FATGenerator:
                 
                 # 关闭导出进度窗口
                 if export_window:
-                    export_window.destroy()
+                    export_window.close()
                 
                 return result
                 
             except Exception as e:
                 error_msg = f"生成FAT点表文件失败: {str(e)}\n{traceback.format_exc()}"
-                messagebox.showerror("错误", error_msg)
+                QMessageBox.critical(root_window, "错误", error_msg)
                 
                 if export_window:
-                    export_window.destroy()
+                    export_window.close()
                 return False
                 
         except Exception as e:
-            if export_window and export_window.winfo_exists():
-                export_window.destroy()
+            if export_window and export_window.isVisible():
+                export_window.close()
             error_details = traceback.format_exc()
-            messagebox.showerror("错误", f"生成FAT点表时发生错误:\n{str(e)}\n\n详细错误信息:\n{error_details}")
+            QMessageBox.critical(root_window, "错误", f"生成FAT点表时发生错误:\n{str(e)}\n\n详细错误信息:\n{error_details}")
             return False 

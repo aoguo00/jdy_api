@@ -17,7 +17,13 @@
 import requests
 import json
 from typing import List, Dict, Any
-from tkinter import messagebox
+
+# 尝试导入PySide6，如果不可用则使用纯控制台输出
+try:
+    from PySide6.QtWidgets import QMessageBox
+    USE_GUI = True
+except ImportError:
+    USE_GUI = False
 
 # 导入FormFields类用于字段访问
 from io_generator import FormFields
@@ -25,6 +31,26 @@ from io_generator import FormFields
 # 简道云API基础URL
 BASE_URL = "https://api.jiandaoyun.com/api"
 API_ENDPOINT = f"{BASE_URL}/v5/app/entry/data/list"
+
+def show_message(title, message, message_type="error", parent=None):
+    """
+    显示消息，支持GUI和控制台两种方式
+    
+    Args:
+        title: 消息标题
+        message: 消息内容
+        message_type: 消息类型 (info, warning, error)
+        parent: 父窗口
+    """
+    if USE_GUI:
+        if message_type == "info":
+            QMessageBox.information(parent, title, message)
+        elif message_type == "warning":
+            QMessageBox.warning(parent, title, message)
+        else:  # error
+            QMessageBox.critical(parent, title, message)
+    else:
+        print(f"{title}: {message}")
 
 class JianDaoYunAPI:
     """
@@ -79,7 +105,7 @@ class JianDaoYunAPI:
         """
         # 检查API凭证是否已设置
         if not self.api_key:
-            messagebox.showerror("错误", "API凭证未配置，请在配置文件中设置有效的API_KEY")
+            show_message("错误", "API凭证未配置，请在配置文件中设置有效的API_KEY")
             return []
             
         # 指定要返回的字段，确保包含_id字段
@@ -116,7 +142,7 @@ class JianDaoYunAPI:
             # 检查HTTP响应状态
             if response.status_code != 200:
                 error_msg = f"API请求失败，HTTP错误: {response.status_code}\n错误详情: {response.text}"
-                messagebox.showerror("API错误", error_msg)
+                show_message("API错误", error_msg)
                 return []
             
             # 解析JSON响应
@@ -129,7 +155,7 @@ class JianDaoYunAPI:
                 for item in result['data']:
                     # 确保记录中包含_id字段
                     if '_id' not in item:
-                        messagebox.showwarning("警告", "记录中没有_id字段，可能无法查询详情")
+                        print("警告: 记录中没有_id字段，可能无法查询详情")
                         
                     field_id = self.field_mapping[FormFields.MainForm.PROJECT_NUMBER]
                     if item.get(field_id) == project_number:
@@ -138,20 +164,20 @@ class JianDaoYunAPI:
                 if matched_data:
                     return matched_data
                 else:
-                    messagebox.showinfo("提示", f"API返回了数据，但没有匹配项目编号 '{project_number}' 的记录。")
+                    print(f"提示: API返回了数据，但没有匹配项目编号 '{project_number}' 的记录。")
                     return []
             else:
-                messagebox.showwarning("警告", "API响应中没有找到数据字段。")
+                print("警告: API响应中没有找到数据字段。")
                 return []
                 
         except requests.exceptions.RequestException as e:
-            messagebox.showerror("网络错误", f"网络请求错误: {str(e)}")
+            show_message("网络错误", f"网络请求错误: {str(e)}")
             return []
         except json.JSONDecodeError as e:
-            messagebox.showerror("解析错误", f"JSON解析错误: {str(e)}")
+            show_message("解析错误", f"JSON解析错误: {str(e)}")
             return []
         except Exception as e:
-            messagebox.showerror("未知错误", f"查询数据时发生未知错误: {str(e)}")
+            show_message("未知错误", f"查询数据时发生未知错误: {str(e)}")
             return []
     
     def get_shenhua_detail(self, data_id: str) -> List[Dict[str, Any]]:
@@ -168,7 +194,7 @@ class JianDaoYunAPI:
         """
         # 检查API凭证是否已设置
         if not self.api_key:
-            messagebox.showerror("错误", "API凭证未配置")
+            show_message("错误", "API凭证未配置")
             return []
         
         try:
@@ -198,7 +224,7 @@ class JianDaoYunAPI:
             # 检查HTTP响应状态
             if response.status_code != 200:
                 error_msg = f"API请求失败，HTTP错误: {response.status_code}\n错误详情: {response.text}"
-                messagebox.showerror("API错误", error_msg)
+                show_message("API错误", error_msg)
                 return []
             
             # 解析JSON响应
@@ -206,7 +232,7 @@ class JianDaoYunAPI:
             
             # 判断是否有数据返回
             if 'data' not in result or not isinstance(result['data'], list) or not result['data']:
-                messagebox.showwarning("数据错误", "API响应中没有找到有效数据")
+                show_message("数据错误", "API响应中没有找到有效数据")
                 return []
             
             # 从数据中提取第一条记录
@@ -215,31 +241,31 @@ class JianDaoYunAPI:
             # 检查返回的数据ID是否与请求的ID一致
             returned_id = data.get('_id', 'unknown')
             if returned_id != data_id:
-                messagebox.showwarning("数据警告", f"返回的数据ID ({returned_id}) 与请求的ID ({data_id}) 不匹配")
+                show_message("数据警告", f"返回的数据ID ({returned_id}) 与请求的ID ({data_id}) 不匹配")
             
             # 检查是否存在子表单字段
             if self.subform_field_id not in data:
                 error_msg = f"响应中没有找到深化清单子表单字段 {self.subform_field_id}"
-                messagebox.showerror("字段错误", error_msg)
+                show_message("字段错误", error_msg)
                 return []
                 
             shenhua_list = data.get(self.subform_field_id, [])
             
             if not shenhua_list:
-                messagebox.showinfo("提示", "未找到深化清单数据")
+                show_message("提示", "未找到深化清单数据")
                 return []
             
             return shenhua_list
             
         except requests.exceptions.RequestException as e:
-            messagebox.showerror("网络错误", f"网络请求错误: {str(e)}")
+            show_message("网络错误", f"网络请求错误: {str(e)}")
             return []
         except json.JSONDecodeError as e:
-            messagebox.showerror("解析错误", f"JSON解析错误: {str(e)}")
+            show_message("解析错误", f"JSON解析错误: {str(e)}")
             return []
         except Exception as e:
             error_msg = f"获取深化清单详情时发生未知错误: {str(e)}"
-            messagebox.showerror("未知错误", error_msg)
+            show_message("未知错误", error_msg)
             return []
 
     def get_all_shenhua_data(self) -> List[Dict[str, Any]]:
@@ -251,7 +277,7 @@ class JianDaoYunAPI:
         """
         # 检查API凭证是否已设置
         if not self.api_key:
-            messagebox.showerror("错误", "API凭证未配置")
+            show_message("错误", "API凭证未配置")
             return []
         
         try:
@@ -277,7 +303,7 @@ class JianDaoYunAPI:
             # 检查HTTP响应状态
             if response.status_code != 200:
                 error_msg = f"API请求失败，HTTP错误: {response.status_code}\n错误详情: {response.text}"
-                messagebox.showerror("API错误", error_msg)
+                show_message("API错误", error_msg)
                 return []
             
             # 解析JSON响应
@@ -285,7 +311,7 @@ class JianDaoYunAPI:
             
             # 判断是否有数据返回
             if 'data' not in result or not isinstance(result['data'], list) or not result['data']:
-                messagebox.showwarning("数据错误", "API响应中没有找到有效数据")
+                show_message("数据错误", "API响应中没有找到有效数据")
                 return []
             
             # 获取所有数据
@@ -293,12 +319,12 @@ class JianDaoYunAPI:
             return all_data
             
         except requests.exceptions.RequestException as e:
-            messagebox.showerror("网络错误", f"网络请求错误: {str(e)}")
+            show_message("网络错误", f"网络请求错误: {str(e)}")
             return []
         except json.JSONDecodeError as e:
-            messagebox.showerror("解析错误", f"JSON解析错误: {str(e)}")
+            show_message("解析错误", f"JSON解析错误: {str(e)}")
             return []
         except Exception as e:
             error_msg = f"获取数据时发生未知错误: {str(e)}"
-            messagebox.showerror("未知错误", error_msg)
+            show_message("未知错误", error_msg)
             return [] 

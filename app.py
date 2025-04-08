@@ -6,8 +6,9 @@
 该文件是系统的主入口点，负责初始化应用程序并启动界面
 """
 
-import tkinter as tk
-from tkinter import messagebox
+import sys
+import traceback
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 # 导入配置
 from config.api_config import (
@@ -19,7 +20,7 @@ from config.settings import UI_TITLE, UI_WIDTH, UI_HEIGHT
 
 # 从api模块导入JianDaoYunAPI
 from api import JianDaoYunAPI
-from ui import ProjectQueryApp
+from ui_pyside import ProjectQueryApp
 
 def main():
     """
@@ -27,11 +28,23 @@ def main():
     负责初始化API客户端并启动用户界面
     包含基本的错误处理机制
     """
+    print("深化设计数据查询工具启动中...")
+    print("=" * 50)
+    
     try:
+        # 检查PySide6是否已安装
+        try:
+            import PySide6
+            print("正在启动界面...")
+        except ImportError:
+            print("导入PySide6失败，请确保已安装PySide6。")
+            print("尝试使用命令安装: pip install PySide6")
+            return 1
+            
         # 检查API凭证是否已设置
         if not API_KEY:
-            messagebox.showerror("配置错误", "API凭证未配置\n请在 config/api_config.py 文件中设置有效的 API_KEY")
-            return
+            QMessageBox.critical(None, "配置错误", "API凭证未配置\n请在 config/api_config.py 文件中设置有效的 API_KEY")
+            return 1
         
         # 初始化API客户端
         api_client = JianDaoYunAPI(
@@ -42,26 +55,29 @@ def main():
             subform_field_id=SHENHUA_SUBFORM_FIELD_ID
         )
         
-        # 创建Tkinter根窗口
-        root = tk.Tk()
-        root.title(UI_TITLE)
-        root.geometry(f"{UI_WIDTH}x{UI_HEIGHT}")
+        # 创建QApplication实例
+        app = QApplication(sys.argv)
+        app.setApplicationName(UI_TITLE)
         
         # 创建应用实例
-        app = ProjectQueryApp(
-            root=root,
+        main_window = ProjectQueryApp(
             api_client=api_client,
             field_mapping=FIELD_MAPPING,
             shenhua_field_mapping=SHENHUA_FIELD_MAPPING
         )
+        main_window.show()
         
         # 启动主循环
-        root.mainloop()
+        return app.exec()
         
     except KeyboardInterrupt:
-        pass  # 忽略键盘中断
+        print("程序被用户中断")
+        return 0
     except Exception as e:
-        messagebox.showerror("程序错误", f"程序发生错误: {str(e)}")
+        error_message = f"程序发生错误: {str(e)}\n\n{traceback.format_exc()}"
+        print(error_message)
+        QMessageBox.critical(None, "程序错误", error_message)
+        return 1
 
 if __name__ == "__main__":
-    main() 
+    sys.exit(main()) 

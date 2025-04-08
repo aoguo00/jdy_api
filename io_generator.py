@@ -15,7 +15,7 @@ JianDaoYunAPI类已移至api.py模块，实现了关注点分离
 import pandas as pd
 import os
 from typing import List, Dict, Any
-from tkinter import messagebox
+from PySide6.QtWidgets import QMessageBox
 
 class FormFields:
     """
@@ -499,7 +499,7 @@ class IOChannelCalculator:
                                     # 检查是否超出机架数量
                                     if current_rack > rack_count:
                                         error_msg = f"警告：IO模块数量超出了可用机架数量 ({rack_count})，请增加机架数量。"
-                                        messagebox.showwarning("机架不足", error_msg)
+                                        QMessageBox.warning(None, "机架不足", error_msg)
                                         # 继续使用最后一个机架
                                 
                                 # 为该模块的每个通道创建条目
@@ -979,10 +979,10 @@ class IOChannelCalculator:
                 return True
             except Exception as e:
                 error_msg = f"移动临时文件失败: {str(e)}\n临时文件位置: {temp_file}"
-                messagebox.showerror("文件操作错误", error_msg)
+                QMessageBox.critical(None, "文件操作错误", error_msg)
                 # 临时文件创建成功，但无法重命名，返回临时文件路径
                 return False
             
         except Exception as e:
-            messagebox.showerror("导出错误", f"导出Excel失败: {str(e)}")
+            QMessageBox.critical(None, "导出错误", f"导出Excel失败: {str(e)}")
             return False 
