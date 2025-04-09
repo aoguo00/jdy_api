@@ -286,15 +286,14 @@ class HMIGenerator:
                     if "TagGroup" in column_indices:
                         disc_sheet.write(excel_row, column_indices["TagGroup"], station_name, standard_style)
                     if "ItemName" in column_indices:
-                        # ItemName = 上位机通讯地址前面部分，使用文本格式
+                        # ItemName = 上位机通讯地址前面部分，使用文本格式且在前面加0
                         try:
                             item_name_value = str(comm_address).split('.')[0]
-                            # 将通讯地址转换为整数（去掉可能的前导0）并再次转为字符串
-                            item_name_int = int(item_name_value)
-                            disc_sheet.write(excel_row, column_indices["ItemName"], str(item_name_int), text_style)
+                            # 在前面加上0
+                            item_name_with_zero = '0' + item_name_value
+                            disc_sheet.write(excel_row, column_indices["ItemName"], item_name_with_zero, text_style)
                         except (ValueError, TypeError):
-                            # 如果无法转换为整数，则保持原样使用文本格式
-                            disc_sheet.write(excel_row, column_indices["ItemName"], item_name_value, text_style)
+                            disc_sheet.write(excel_row, column_indices["ItemName"], '0' + str(item_name_value), text_style)
                     
                     # 填充固定值字段
                     for field, value in disc_fixed_values.items():
@@ -362,13 +361,14 @@ class HMIGenerator:
                         if "TagGroup" in column_indices:
                             disc_sheet.write(bool_ext_row_counter, column_indices["TagGroup"], station_name, standard_style)
                         if "ItemName" in column_indices:
-                            # ItemName = 上位机通讯地址，使用文本格式
+                            # ItemName = 上位机通讯地址，使用文本格式且在前面加0
                             try:
                                 item_name_value = str(point_comm_addr).split('.')[0]
-                                item_name_int = int(item_name_value)
-                                disc_sheet.write(bool_ext_row_counter, column_indices["ItemName"], str(item_name_int), text_style)
+                                # 在前面加上0
+                                item_name_with_zero = '0' + item_name_value
+                                disc_sheet.write(bool_ext_row_counter, column_indices["ItemName"], item_name_with_zero, text_style)
                             except (ValueError, TypeError):
-                                disc_sheet.write(bool_ext_row_counter, column_indices["ItemName"], item_name_value, text_style)
+                                disc_sheet.write(bool_ext_row_counter, column_indices["ItemName"], '0' + str(item_name_value), text_style)
                         
                         # 填充固定值字段
                         for field, value in disc_fixed_values.items():
@@ -476,8 +476,7 @@ class HMIGenerator:
                             # 确保值为文本格式
                             try:
                                 item_name_value = str(comm_address).split('.')[0]
-                                item_name_int = int(item_name_value)
-                                float_sheet.write(excel_row_counter, float_column_indices["ItemName"], str(item_name_int), text_style)
+                                float_sheet.write(excel_row_counter, float_column_indices["ItemName"], item_name_value, text_style)
                             except (ValueError, TypeError):
                                 float_sheet.write(excel_row_counter, float_column_indices["ItemName"], item_name_value, text_style)
                         
@@ -554,8 +553,7 @@ class HMIGenerator:
                             # 确保值为文本格式
                             try:
                                 item_name_value = str(point_comm_addr).split('.')[0]
-                                item_name_int = int(item_name_value)
-                                float_sheet.write(real_ext_row_counter, float_column_indices["ItemName"], str(item_name_int), text_style)
+                                float_sheet.write(real_ext_row_counter, float_column_indices["ItemName"], item_name_value, text_style)
                             except (ValueError, TypeError):
                                 float_sheet.write(real_ext_row_counter, float_column_indices["ItemName"], item_name_value, text_style)
                         
