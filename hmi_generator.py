@@ -833,7 +833,8 @@ class HMIGenerator:
                     "StatusAlarmEnabled": "false",
                     "StatusAlarmTableName": "",
                     "StatusInhibitor": "",
-                    "AlarmGroup": "",
+                    # 移除AlarmGroup字段，避免重复写入
+                    # "AlarmGroup": "",
                     "ExtentField3": "",
                     "ExtentField4": "",
                     "ExtentField5": "",
@@ -927,12 +928,24 @@ class HMIGenerator:
                     # 获取变量信息
                     hmi_name = row.get("变量名称（HMI）", "")
                     description = row.get("变量描述", "")
+                    station_name = row.get("场站名", "未知站点")  # 获取场站名
+                    alarm_priority = row.get("报警等级", 1)  # 默认为1，确保为数字
                     
                     # 如果变量名为空，则自动补全
                     if pd.isna(hmi_name) or str(hmi_name).strip() == "":
                         channel_code = row.get("通道位号", "")
                         hmi_name = f"YLDW{channel_code}"
                         description = f"预留点位{channel_code}" if pd.isna(description) or str(description).strip() == "" else description
+                    
+                    # 如果报警等级为空，则设为默认值1
+                    if pd.isna(alarm_priority) or str(alarm_priority).strip() == "":
+                        alarm_priority = 1
+                    else:
+                        # 尝试将报警等级转换为数字
+                        try:
+                            alarm_priority = int(alarm_priority)
+                        except (ValueError, TypeError):
+                            alarm_priority = 1
                     
                     # 获取各类限值和报警信息
                     shh_value = row.get("SHH设定值", "")
@@ -957,6 +970,10 @@ class HMIGenerator:
                         disc_sheet.write(excel_row, column_indices["TagName"], hmi_name, standard_style)
                     if "Description" in column_indices:
                         disc_sheet.write(excel_row, column_indices["Description"], description, standard_style)
+                    if "AlarmPriority" in column_indices:
+                        disc_sheet.write(excel_row, column_indices["AlarmPriority"], alarm_priority, number_style)
+                    if "AlarmGroup" in column_indices:
+                        disc_sheet.write(excel_row, column_indices["AlarmGroup"], station_name, standard_style)
                     if "IOAccess" in column_indices:
                         io_access = f"Sever1.{hmi_name}.Value"
                         disc_sheet.write(excel_row, column_indices["IOAccess"], io_access, standard_style)
@@ -1276,7 +1293,8 @@ class HMIGenerator:
                     "StatusAlarmEnabled": "false",
                     "StatusAlarmTableName": "",
                     "StatusInhibitor": "",
-                    "AlarmGroup": "",
+                    # 移除AlarmGroup字段，避免重复写入
+                    # "AlarmGroup": "",
                     "ExtentField3": "",
                     "ExtentField4": "",
                     "ExtentField5": "",
@@ -1370,12 +1388,24 @@ class HMIGenerator:
                     # 获取变量信息
                     hmi_name = row.get("变量名称（HMI）", "")
                     description = row.get("变量描述", "")
+                    station_name = row.get("场站名", "未知站点")  # 获取场站名
+                    alarm_priority = row.get("报警等级", 1)  # 默认为1，确保为数字
                     
                     # 如果变量名为空，则自动补全
                     if pd.isna(hmi_name) or str(hmi_name).strip() == "":
                         channel_code = row.get("通道位号", "")
                         hmi_name = f"YLDW{channel_code}"
                         description = f"预留点位{channel_code}" if pd.isna(description) or str(description).strip() == "" else description
+                    
+                    # 如果报警等级为空，则设为默认值1
+                    if pd.isna(alarm_priority) or str(alarm_priority).strip() == "":
+                        alarm_priority = 1
+                    else:
+                        # 尝试将报警等级转换为数字
+                        try:
+                            alarm_priority = int(alarm_priority)
+                        except (ValueError, TypeError):
+                            alarm_priority = 1
                     
                     # 获取各类限值和报警信息
                     shh_value = row.get("SHH设定值", "")
@@ -1400,6 +1430,10 @@ class HMIGenerator:
                         float_sheet.write(excel_row, float_column_indices["TagName"], hmi_name, standard_style)
                     if "Description" in float_column_indices:
                         float_sheet.write(excel_row, float_column_indices["Description"], description, standard_style)
+                    if "AlarmPriority" in float_column_indices:
+                        float_sheet.write(excel_row, float_column_indices["AlarmPriority"], alarm_priority, number_style)
+                    if "AlarmGroup" in float_column_indices:
+                        float_sheet.write(excel_row, float_column_indices["AlarmGroup"], station_name, standard_style)
                     if "IOAccess" in float_column_indices:
                         io_access = f"Sever1.{hmi_name}.Value"
                         float_sheet.write(excel_row, float_column_indices["IOAccess"], io_access, standard_style)
