@@ -141,6 +141,10 @@ class DetailWindow(QDialog):
         self.detail_table.setColumnCount(len(columns))
         self.detail_table.setHorizontalHeaderLabels(columns)
         
+        # 设置选择模式为整行选择
+        self.detail_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.detail_table.setSelectionMode(QTableWidget.SingleSelection)
+        
         # 设置列宽
         for i, col in enumerate(columns):
             width = 100
@@ -316,6 +320,10 @@ class ProjectQueryApp(QMainWindow):
         # 设置列宽
         self.project_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         
+        # 设置选择模式为整行选择
+        self.project_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.project_table.setSelectionMode(QTableWidget.SingleSelection)
+        
         # 添加选择项目的点击处理
         self.project_table.cellClicked.connect(self.on_project_selected)
         
@@ -330,6 +338,10 @@ class ProjectQueryApp(QMainWindow):
         self.equipment_table = QTableWidget()
         self.equipment_table.setColumnCount(7)  # 7列: 设备名称, 品牌, 规格型号, 技术参数, 数量, 单位, 子系统
         self.equipment_table.setHorizontalHeaderLabels(["设备名称", "品牌", "规格型号", "技术参数", "数量", "单位", "子系统"])
+        
+        # 设置选择模式为整行选择
+        self.equipment_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.equipment_table.setSelectionMode(QTableWidget.SingleSelection)
         
         # 设置列宽
         self.equipment_table.setColumnWidth(0, 150)  # 设备名称
